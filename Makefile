@@ -21,14 +21,16 @@ chr_reads_stats=data/chr1.reads.stats
 chr_reads_coverage_tsv=data/chr1.reads.coverage.tsv
 chr_reads_coverage_pdf=data/chr1.reads.coverage.pdf
 # step 4: align & map
-chr_reads_aligned=data/chr1.reads.ali.bam
+chr_reads_aligned_raw=data/chr1.reads.ali.raw.bam
+chr_reads_aligned_grouped=data/chr1.reads.ali.grouped.bam
 chr_reads_variants=data/chr1.reads.vcf
 cutoff=1000000
 #todo set to 5000
 read_size=100
 #TODO: update
 # bash only supports integers
-num_reads=$$(( $(cutoff) * 1 / $(read_size)))
+# TODO increase to 30
+num_reads=$$(( $(cutoff) * 30 / $(read_size)))
 
 ################################################################################
 # Pretasks
@@ -97,10 +99,11 @@ $(chr_mut) $(chr_mut_vcf): $(chr_ref) $(chr_ref_index_fai)
 ################################################################################
 
 # simulate paired-end reads
-$(chr_reads) $(chr_reads_h1) $(chr_reads_h2): $(chr_ref) $(chr_mut)
+#$(chr_reads) $(chr_reads_h1) $(chr_reads_h2): $(chr_ref) $(chr_mut)
+simulate_with_mason: $(chr_ref) $(chr_mut)
 	mason_simulator -ir $(chr_ref) -iv $(chr_mut_vcf) \
-    	-o $(chr_reads_h1) -or $(chr_reads_h2) -oa $(chr_reads) \
-    	--num-threads $(NPROCS) --read-name-prefix sim  \
+		-o $(chr_reads_h1) -or $(chr_reads_h2) -oa $(chr_reads) \
+		--num-threads $(NPROCS) --read-name-prefix sim  \
 		--seq-technology 454 \
 		--num-fragments $(num_reads) \
 		--454-read-length-min 4000 \
@@ -112,11 +115,49 @@ $(chr_reads) $(chr_reads_h1) $(chr_reads_h2): $(chr_ref) $(chr_mut)
 		--fragment-mean-size 15000 \
 		--fragment-size-std-dev 1500
 
-$(chr_reads_sorted): $(chr_reads)
-	samtools sort $< > $@
+#simulate_with_wgsim: $(chr_ref) $(chr_mut)
+$(chr_reads) $(chr_reads_h1) $(chr_reads_h2): $(chr_ref) $(chr_mut)
+	../tools/wgsim/wgsim -1 $(read_size) -2 $(read_size) -N $(num_reads) -R 0.0 -e 0.0 -r 0.0 \
+		$(chr_mut) $(chr_reads_h1) $(chr_reads_h2) > $(chr_reads)
+
+#$(chr_reads) $(chr_reads_h1) $(chr_reads_h2): $(chr_ref) $(chr_mut)
+simulate_with_pbsim: $(chr_ref) $(chr_mut)
+	../tools/pbsim-1.0.3/src/pbsim --depth 20 $(chr_mut) --model_qc ~/hel/thesis/tools/pbsim-1.0.3/data/model_qc_clr --prefix sd 
+	rm sd_000{1,2}.ref
+	#rm sd_000{1,2}.maf
+	mv sd_0001.fastq $(chr_reads_h1)
+	mv sd_0002.fastq $(chr_reads_h2)
+
+################################################################################
+# Step 4 - Align reads to reference
+# ---------------------------------
+#
+# mem is recommended for longer reads (faster, more accurate)
+#
+# gatk required us to have read groups and indexed file bam file
+################################################################################
+
+# align reads
+$(chr_reads_aligned_raw): $(chr_ref) $(chr_reads) $(chr_ref_index_bwa)
+	bwa mem -t $(NPROCS) $(chr_ref) $(chr_reads_h1) $(chr_reads_h2) > $@
+
+$(chr_reads_aligned_grouped): $(chr_reads_aligned_raw)
+	picard AddOrReplaceReadGroups \
+      I=$< \
+      O=$@ \
+      SORT_ORDER=coordinate \
+      RGID=4 \
+      RGLB=lib1 \
+      RGPL=illumina \
+      RGPU=unit1 \
+      RGSM=20
+	samtools index $@
+
+#$(chr_reads_sorted): $(chr_reads)
+	#samtools sort $< > $@
 
 # reads statistics
-$(chr_reads_stats): $(chr_reads_sorted)
+$(chr_reads_stats): $(chr_reads_aligned_grouped)
 	samtools stats $< > $@
 
 # filter read report
@@ -128,23 +169,12 @@ $(chr_reads_coverage_pdf): $(chr_reads_coverage_tsv)
 	./src/coverage_stats.py $< -o $@
 
 ################################################################################
-# Step 4 - Align reads to reference
-# ---------------------------------
-#
-# mem is recommended for longer reads (faster, more accurate)
-################################################################################
-
-# align reads
-$(chr_reads_aligned): $(chr_ref) $(chr_reads) $(chr_ref_index_bwa)
-	bwa mem -t $(NPROCS) $(chr_ref) $(chr_reads_h1) $(chr_reads_h2) > $@
-
-################################################################################
 # Step 5 - Map variant from read to reference
 ################################################################################
 
 # map variants
-$(chr_reads_variants): $(chr_ref) $(chr_reads_aligned) $(chr_ref_index_dict) $(chr_ref_index_fai)
-	gatk -nt $(NPROCS) -R $(chr_ref) -T HaplotypeCaller -I $(chr_reads_aligned) -o $@
+$(chr_reads_variants): $(chr_ref) $(chr_reads_aligned_grouped) $(chr_ref_index_dict) $(chr_ref_index_fai)
+	gatk -R $(chr_ref) -T HaplotypeCaller -I $(chr_reads_aligned_grouped) -o $@
 
 ################################################################################
 # Step 6 - Prune reads
