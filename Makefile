@@ -16,21 +16,23 @@ chr_mut_vcf=data/chr1.mut.vcf
 chr_reads=data/chr1.reads.bam
 chr_reads_h1=data/chr1.reads.h1.fq
 chr_reads_h2=data/chr1.reads.h2.fq
-chr_reads_sorted=data/chr1.reads.sorted.stats
+# step 4: align & map
+chr_reads_aligned_raw=data/chr1.reads.ali.raw.bam
+chr_reads_aligned_sorted=data/chr1.reads.ali.sorted.bam
+# 4b) some statistics
 chr_reads_stats=data/chr1.reads.stats
 chr_reads_coverage_tsv=data/chr1.reads.coverage.tsv
 chr_reads_coverage_pdf=data/chr1.reads.coverage.pdf
-# step 4: align & map
-chr_reads_aligned_raw=data/chr1.reads.ali.raw.bam
-chr_reads_aligned_grouped=data/chr1.reads.ali.grouped.bam
+# step 5: call variants
 chr_reads_variants=data/chr1.reads.vcf
 cutoff=1000000
+#cutoff=248956422
 #todo set to 5000
 read_size=100
 #TODO: update
 # bash only supports integers
 # TODO increase to 30
-num_reads=$$(( $(cutoff) * 30 / $(read_size)))
+num_reads=$$(( $(cutoff) * 15 / $(read_size)))
 
 ################################################################################
 # Pretasks
@@ -139,25 +141,18 @@ simulate_with_pbsim: $(chr_ref) $(chr_mut)
 
 # align reads
 $(chr_reads_aligned_raw): $(chr_ref) $(chr_reads) $(chr_ref_index_bwa)
-	bwa mem -t $(NPROCS) $(chr_ref) $(chr_reads_h1) $(chr_reads_h2) > $@
+	bwa mem -t $(NPROCS) $(chr_ref) $(chr_reads_h1) $(chr_reads_h2) \
+		-R "@RG\tID:$(chr_ref)\tPG:bwa\tSM:$(chr_ref)}" > $@
 
-$(chr_reads_aligned_grouped): $(chr_reads_aligned_raw)
-	picard AddOrReplaceReadGroups \
-      I=$< \
-      O=$@ \
-      SORT_ORDER=coordinate \
-      RGID=4 \
-      RGLB=lib1 \
-      RGPL=illumina \
-      RGPU=unit1 \
-      RGSM=20
+# TODO join
+
+# each threads uses at least 800 MB (-m flag) - dont start too many!
+$(chr_reads_aligned_sorted): $(chr_reads_aligned_raw)
+	samtools sort --threads 4 -o $@ $<
 	samtools index $@
 
-#$(chr_reads_sorted): $(chr_reads)
-	#samtools sort $< > $@
-
 # reads statistics
-$(chr_reads_stats): $(chr_reads_aligned_grouped)
+$(chr_reads_stats): $(chr_reads_aligned_sorted)
 	samtools stats $< > $@
 
 # filter read report
@@ -173,8 +168,8 @@ $(chr_reads_coverage_pdf): $(chr_reads_coverage_tsv)
 ################################################################################
 
 # map variants
-$(chr_reads_variants): $(chr_ref) $(chr_reads_aligned_grouped) $(chr_ref_index_dict) $(chr_ref_index_fai)
-	gatk -R $(chr_ref) -T HaplotypeCaller -I $(chr_reads_aligned_grouped) -o $@
+$(chr_reads_variants): $(chr_ref) $(chr_reads_aligned_sorted) $(chr_ref_index_dict) $(chr_ref_index_fai)
+	gatk -R $(chr_ref) -T HaplotypeCaller -I $(chr_reads_aligned_sorted) -o $@
 
 ################################################################################
 # Step 6 - Prune reads

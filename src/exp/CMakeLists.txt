@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 2.6)
+project(AllProjects)
+add_subdirectory(bamtools)
+add_subdirectory(seqan)
+add_subdirectory(hts)

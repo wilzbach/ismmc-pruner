@@ -1,0 +1,23 @@
+testing hts
+74688153
+real	0m31.881s
+user	0m31.483s
+sys	0m0.393s
+
+testing bamtools
+74688153
+real	0m38.956s
+user	0m38.570s
+sys	0m0.383s
+
+testing seqan
+74688153
+real	5m32.124s
+user	7m8.527s
+sys	0m19.973s
+
+testing pysam
+74688153
+real	0m59.315s
+user	0m58.920s
+sys	0m0.390s
