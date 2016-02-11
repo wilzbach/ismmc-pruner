@@ -1,36 +1,46 @@
-#include <iostream>
-#include <seqan/stream.h>
-#include <seqan/bam_io.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <bam/bam.h>
 
-int main()
+int main(int argc, char** argv)
 {
-    // Open input stream, BamStream can read SAM and BAM files.
-    std::string pathSam = std::string("/home/xsebi/hel/thesis/chain/data/chr1.reads.bam");
-
-    seqan::BamFileIn bamFileIn;
-    if (!open(bamFileIn, seqan::toCString(pathSam)))
-    {
-        std::cerr << "Can't open the file." << std::endl;
-        return 1;
+    if(argc < 3){
+        printf("No input nor output files provided");
+        return -1;
     }
 
-    // Open output stream. The value "-" means reading from stdin or writing to stdout.
-    seqan::BamFileOut bamFileOut(bamFileIn);
-    open(bamFileOut, std::cout, seqan::Sam());
-
-    // Copy header. The header is automatically written out before the first record.
-    seqan::BamHeader header;
-    readHeader(header, bamFileIn);
-    seqan::writeHeader(bamFileOut, header);
-
-    // BamAlignmentRecord stores one record at a time.
-    seqan::BamAlignmentRecord record;
-    while (!atEnd(bamFileIn))
-    {
-        readRecord(record, bamFileIn);
-        printf("%d %d", record.beginPos, record.tLen);
-        //writeRecord(bamFileOut, record);
-        break;
+    bam1_t* b = bam_init1();
+    bamFile in = bam_open(argv[1], "r");
+    bam_header_t* header;
+    if (in == NULL){
+        printf("opening input file failed");
+        return -1;
     }
+    if (b == NULL){
+        printf("init bam buffer failed");
+        return -1;
+    }
+
+    bamFile out = bam_open(argv[2], "w");
+    if (out == NULL){
+        printf("opening input file failed");
+        return -1;
+    }
+
+    header = bam_header_read(in);
+    if(bam_header_write(out, header) < 0){
+        printf("writing header failed");
+    }
+    while (bam_read1(in, b) >= 0) {
+        bam_write1(out, b);
+        // mpos?
+        //printf("%d", b->core.pos, b->core->l_qseq);
+    }
+
+    // closing all resources
+    bam_header_destroy(header);
+    bam_close(in);
+    bam_close(out);
+    bam_destroy1(b);
     return 0;
 }

@@ -2,3 +2,4 @@ data
 perm
 .idea
 build
+__pycache__/
