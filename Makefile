@@ -28,7 +28,7 @@ chr_reads_variants=data/chr1.reads.vcf
 cutoff=1000000
 #cutoff=248956422
 #todo set to 5000
-read_size=100
+read_size=5000
 #TODO: update
 # bash only supports integers
 # TODO increase to 30
@@ -48,9 +48,9 @@ ifeq ($(OS),Darwin) # Assume Mac OS X
 	NPROCS:=$(shell system_profiler | awk '/Number Of CPUs/{print $4}{next;}')
 endif
 
-perm: 
+perm:
 	mkdir -p perm
-data: 
+data:
 	mkdir -p data
 
 ################################################################################
@@ -64,11 +64,11 @@ data:
 
 # TODO add data and perm
 
-$(chr):  
+$(chr): | perm
 	curl $(chromosomeURL) | gunzip > $@
 
 # create reference "genome"
-$(chr_ref): $(chr)
+$(chr_ref): $(chr) | data
 	./src/cut.py $(chr) -e $(cutoff)  > $@
 
 # index reference
@@ -124,7 +124,7 @@ $(chr_reads) $(chr_reads_h1) $(chr_reads_h2): $(chr_ref) $(chr_mut)
 
 #$(chr_reads) $(chr_reads_h1) $(chr_reads_h2): $(chr_ref) $(chr_mut)
 simulate_with_pbsim: $(chr_ref) $(chr_mut)
-	../tools/pbsim-1.0.3/src/pbsim --depth 20 $(chr_mut) --model_qc ~/hel/thesis/tools/pbsim-1.0.3/data/model_qc_clr --prefix sd 
+	../tools/pbsim-1.0.3/src/pbsim --depth 20 $(chr_mut) --model_qc ~/hel/thesis/tools/pbsim-1.0.3/data/model_qc_clr --prefix sd
 	rm sd_000{1,2}.ref
 	#rm sd_000{1,2}.maf
 	mv sd_0001.fastq $(chr_reads_h1)
@@ -142,7 +142,7 @@ simulate_with_pbsim: $(chr_ref) $(chr_mut)
 # align reads
 $(chr_reads_aligned_raw): $(chr_ref) $(chr_reads) $(chr_ref_index_bwa)
 	bwa mem -t $(NPROCS) $(chr_ref) $(chr_reads_h1) $(chr_reads_h2) \
-		-R "@RG\tID:$(chr_ref)\tPG:bwa\tSM:$(chr_ref)}" > $@
+		-R "@RG\tID:$(chr_ref)\tPG:bwa\tSM:$(chr_ref)" > $@
 
 # TODO join
 
