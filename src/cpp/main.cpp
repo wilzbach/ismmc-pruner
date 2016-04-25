@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <bam/bam.h>
+#include <tuple>
+#include "flow.h"
 
 int main(int argc, char** argv)
 {
@@ -31,11 +33,17 @@ int main(int argc, char** argv)
     if(bam_header_write(out, header) < 0){
         printf("writing header failed");
     }
+    reads reads;
     while (bam_read1(in, b) >= 0) {
-        bam_write1(out, b);
+        // write BAM back
+        //bam_write1(out, b);
         // mpos?
-        //printf("%d", b->core.pos, b->core->l_qseq);
+        reads.push_back(sread(b->core.pos, b->core.l_qseq));
+        //printf("%d %d", b->core.pos, b->core.l_qseq);
+        break;
     }
+
+    Flow::maxFlowOpt(reads, 1, 3);
 
     // closing all resources
     bam_header_destroy(header);

@@ -61,3 +61,8 @@ TODO
 ----
 
 HCMappingQualityFilter -> failing reads (2%)
+
+Other
+-----
+
+- [BAM Reader performance test](https://github.com/wilzbach/bam-perf-test)
