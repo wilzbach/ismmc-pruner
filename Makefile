@@ -80,7 +80,7 @@ $(chr_ref_index_fai): $(chr_ref)
 	samtools faidx $<
 
 $(chr_ref_index_dict): $(chr_ref)
-		picard CreateSequenceDictionary REFERENCE=$< OUTPUT=$@
+	picard CreateSequenceDictionary REFERENCE=$< OUTPUT=$@
 
 ################################################################################
 # Step 2 - mutate references into haplotypes
