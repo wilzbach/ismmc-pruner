@@ -52,6 +52,108 @@ perm:
 	mkdir -p perm
 data:
 	mkdir -p data
+progs:
+	mkdir -p progs
+
+################################################################################
+# PROGS
+# -----
+#
+# Because having portable progs is nice
+################################################################################
+
+BWA=progs/bwa
+BWA_VERSION=0.7.13
+
+SAMTOOLS=progs/samtools
+SAMTOOLS_VERSION=1.3
+
+GATK=progs/gatk
+GATK_VERSION=3.5
+
+PICARD=progs/gatk
+PICARD_VERSION=2.2.2
+
+MASON_VARIATOR=progs/mason_variator
+SEQAN_VERSION=2.1.1
+
+WGSIM=progs/wgsim
+
+PBSIM=progs/pbsim
+PBSIM_VERSION=1.0.3
+
+progs/bwa-$(BWA_VERSION): | progs
+	curl -L http://downloads.sourceforge.net/project/bio-bwa/bwa-$(BWA_VERSION).tar.bz2 \
+	| bzip2 -d | tar xf - -C progs
+
+progs/bwa: | progs/bwa-$(BWA_VERSION)
+	cd progs/bwa-$(BWA_VERSION) && make
+	ln -s ./bwa-$(BWA_VERSION)/bwa $@
+
+progs/samtools-$(SAMTOOLS_VERSION): | progs
+	curl -L https://github.com/samtools/samtools/releases/download/$(SAMTOOLS_VERSION)\
+	/samtools-$(SAMTOOLS_VERSION).tar.bz2 \
+	| bzip2 -d | tar xf - -C progs
+
+progs/samtools: | progs/samtools-$(SAMTOOLS_VERSION)
+	cd progs/samtools-$(SAMTOOLS_VERSION) && \
+		sed -e 's|#!/usr/bin/env python|#!/usr/bin/env python2|' -i misc/varfilter.py
+	cd progs/samtools-$(SAMTOOLS_VERSION) && ./configure
+	cd progs/samtools-$(SAMTOOLS_VERSION) && make -j $(NPROCS)
+	ln -s ./samtools-$(SAMTOOLS_VERSION)/samtools $@
+
+progs/gatk-protected-$(GATK_VERSION): | progs
+	curl -L https://github.com/broadgsa/gatk-protected/archive/$(GATK_VERSION).tar.gz | tar -zxf - -C progs
+
+progs/gatk: | progs/gatk-protected-$(GATK_VERSION)
+	cd progs/gatk-protected-$(GATK_VERSION) && mvn install
+	echo "#!/bin/sh" > $@
+	echo 'DIR="$$( cd "$$( dirname "$${BASH_SOURCE[0]}" )" && pwd )"' >> $@
+	echo 'exec /usr/bin/java $$JVM_OPTS -jar "$$DIR/gatk-protected-$(GATK_VERSION)/target/GenomeAnalysisTK.jar" "$$@"' >> $@
+	chmod +x $@
+
+progs/picard-tools-$(PICARD_VERSION): | progs
+	wget https://github.com/broadinstitute/picard/releases/download/$(PICARD_VERSION)/picard-tools-$(PICARD_VERSION).zip -O $@.zip
+	unzip -d progs $@.zip
+	rm $@.zip
+
+progs/picard: | progs/picard-tools-$(PICARD_VERSION)
+	echo "#!/bin/sh" > $@
+	echo 'DIR="$$( cd "$$( dirname "$${BASH_SOURCE[0]}" )" && pwd )"' >> $@
+	echo 'java $$JVM_OPTS -jar "$$DIR"/picard-tools-$(PICARD_VERSION)/picard.jar "$$@"' >> $@
+	chmod +x $@
+
+progs/seqan-seqan-v$(SEQAN_VERSION): | progs
+	curl -L https://github.com/seqan/seqan/archive/seqan-v$(SEQAN_VERSION).tar.gz | gunzip - | tar -xf - -C progs
+
+progs/seqan-seqan-v$(SEQAN_VERSION)/build: | progs/seqan-seqan-v$(SEQAN_VERSION)
+	mkdir -p progs/seqan-seqan-v$(SEQAN_VERSION)/build
+	cmake \
+		-DCMAKE_BUILD_TYPE=Release \
+		-B$@ \
+		-Hprogs/seqan-seqan-v$(SEQAN_VERSION)
+
+progs/mason_variator: | progs/seqan-seqan-v$(SEQAN_VERSION)/build
+	cd progs/seqan-seqan-v$(SEQAN_VERSION)/build && make -j $(NPROCS) mason_variator
+	cp progs/seqan-seqan-v$(SEQAN_VERSION)/build/bin/mason_variator $@
+
+progs/mason_simulator: | progs/seqan-seqan-v$(SEQAN_VERSION)/build
+	cd progs/seqan-seqan-v$(SEQAN_VERSION)/build && make -j $(NPROCS) mason_simulator
+	cp progs/seqan-seqan-v$(SEQAN_VERSION)/build/bin/mason_variator $@
+
+progs/wgsim-master: | progs
+	curl -L https://github.com/lh3/wgsim/archive/master.tar.gz | tar -zxf - -C progs
+
+progs/wgsim: | progs/wgsim-master
+	gcc -g -O2 -Wall -o $@ progs/wgsim-master/wgsim.c -lz -lm
+
+progs/pbsim-$(PBSIM_VERSION): | progs
+	curl -L https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/pbsim/pbsim-$(PBSIM_VERSION).tar.gz | tar -zxf - -C progs
+
+progs/pbsim: | progs/pbsim-$(PBSIM_VERSION)
+	cd progs/pbsim-$(PBSIM_VERSION) && ./configure
+	cd progs/pbsim-$(PBSIM_VERSION) && make -j $(NPROCS)
+	ln -s ./pbsim-$(PBSIM_VERSION)/src/pbsim $@
 
 ################################################################################
 # Step 1 - create reference & index it
@@ -72,15 +174,15 @@ $(chr_ref): $(chr) | data
 	./src/cut.py $(chr) -e $(cutoff)  > $@
 
 # index reference
-$(chr_ref_index_bwa): $(chr_ref)
-	bwa index $<
+$(chr_ref_index_bwa): $(chr_ref) $(BWA)
+	$(BWA) index $<
 
 # GATK needs more indexing
-$(chr_ref_index_fai): $(chr_ref)
-	samtools faidx $<
+$(chr_ref_index_fai): $(chr_ref) $(SAMTOOLS)
+	$(SAMTOOLS) faidx $<
 
-$(chr_ref_index_dict): $(chr_ref)
-	picard CreateSequenceDictionary REFERENCE=$< OUTPUT=$@
+$(chr_ref_index_dict): $(chr_ref) $(PICARD)
+	$(PICARD) CreateSequenceDictionary REFERENCE=$< OUTPUT=$@
 
 ################################################################################
 # Step 2 - mutate references into haplotypes
@@ -89,8 +191,8 @@ $(chr_ref_index_dict): $(chr_ref)
 # mutate (SNPs, Indels, SVs) with two haplotypes
 ################################################################################
 
-$(chr_mut) $(chr_mut_vcf): $(chr_ref) $(chr_ref_index_fai)
-	mason_variator -ir $< -of $(chr_mut) -ov $(chr_mut_vcf) \
+$(chr_mut) $(chr_mut_vcf): $(chr_ref) $(chr_ref_index_fai) $(MASON_VARIATOR)
+	$(MASON_VARIATOR) -ir $< -of $(chr_mut) -ov $(chr_mut_vcf) \
 		--out-breakpoints data/chr1.mut.tsv --num-haplotypes 2
 
 ################################################################################
@@ -102,8 +204,8 @@ $(chr_mut) $(chr_mut_vcf): $(chr_ref) $(chr_ref_index_fai)
 
 # simulate paired-end reads
 #$(chr_reads) $(chr_reads_h1) $(chr_reads_h2): $(chr_ref) $(chr_mut)
-simulate_with_mason: $(chr_ref) $(chr_mut)
-	mason_simulator -ir $(chr_ref) -iv $(chr_mut_vcf) \
+simulate_with_mason: $(chr_ref) $(chr_mut) $(MASON_SIMULATOR)
+	$(MASON_SIMULATOR) -ir $(chr_ref) -iv $(chr_mut_vcf) \
 		-o $(chr_reads_h1) -or $(chr_reads_h2) -oa $(chr_reads) \
 		--num-threads $(NPROCS) --read-name-prefix sim  \
 		--seq-technology 454 \
@@ -118,13 +220,13 @@ simulate_with_mason: $(chr_ref) $(chr_mut)
 		--fragment-size-std-dev 1500
 
 #simulate_with_wgsim: $(chr_ref) $(chr_mut)
-$(chr_reads) $(chr_reads_h1) $(chr_reads_h2): $(chr_ref) $(chr_mut)
-	../tools/wgsim/wgsim -1 $(read_size) -2 $(read_size) -N $(num_reads) -R 0.0 -e 0.0 -r 0.0 \
+$(chr_reads) $(chr_reads_h1) $(chr_reads_h2): $(chr_ref) $(chr_mut) $(WGSIM)
+	$(WGSIM) -1 $(read_size) -2 $(read_size) -N $(num_reads) -R 0.0 -e 0.0 -r 0.0 \
 		$(chr_mut) $(chr_reads_h1) $(chr_reads_h2) > $(chr_reads)
 
 #$(chr_reads) $(chr_reads_h1) $(chr_reads_h2): $(chr_ref) $(chr_mut)
-simulate_with_pbsim: $(chr_ref) $(chr_mut)
-	../tools/pbsim-1.0.3/src/pbsim --depth 20 $(chr_mut) --model_qc ~/hel/thesis/tools/pbsim-1.0.3/data/model_qc_clr --prefix sd
+simulate_with_pbsim: $(chr_ref) $(chr_mut) $(PBSIM)
+	$(PBSIM) --depth 20 $(chr_mut) --model_qc ~/hel/thesis/tools/pbsim-1.0.3/data/model_qc_clr --prefix sd
 	rm sd_000{1,2}.ref
 	#rm sd_000{1,2}.maf
 	mv sd_0001.fastq $(chr_reads_h1)
@@ -140,20 +242,20 @@ simulate_with_pbsim: $(chr_ref) $(chr_mut)
 ################################################################################
 
 # align reads
-$(chr_reads_aligned_raw): $(chr_ref) $(chr_reads) $(chr_ref_index_bwa)
-	bwa mem -t $(NPROCS) $(chr_ref) $(chr_reads_h1) $(chr_reads_h2) \
+$(chr_reads_aligned_raw): $(chr_ref) $(chr_reads) $(chr_ref_index_bwa) $(BWA)
+	$(BWA) mem -t $(NPROCS) $(chr_ref) $(chr_reads_h1) $(chr_reads_h2) \
 		-R "@RG\tID:$(chr_ref)\tPG:bwa\tSM:$(chr_ref)" > $@
 
 # TODO join
 
 # each threads uses at least 800 MB (-m flag) - dont start too many!
-$(chr_reads_aligned_sorted): $(chr_reads_aligned_raw)
-	samtools sort --threads 4 -o $@ $<
-	samtools index $@
+$(chr_reads_aligned_sorted): $(chr_reads_aligned_raw) $(SAMTOOLS)
+	$(SAMTOOLS) sort --threads 4 -o $@ $<
+	$(SAMTOOLS) index $@
 
 # reads statistics
-$(chr_reads_stats): $(chr_reads_aligned_sorted)
-	samtools stats $< > $@
+$(chr_reads_stats): $(chr_reads_aligned_sorted) $(SAMTOOLS)
+	$(SAMTOOLS) stats $< > $@
 
 # filter read report
 $(chr_reads_coverage_tsv): $(chr_reads_stats)
@@ -168,8 +270,8 @@ $(chr_reads_coverage_pdf): $(chr_reads_coverage_tsv)
 ################################################################################
 
 # map variants
-$(chr_reads_variants): $(chr_ref) $(chr_reads_aligned_sorted) $(chr_ref_index_dict) $(chr_ref_index_fai)
-	gatk -R $(chr_ref) -T HaplotypeCaller -I $(chr_reads_aligned_sorted) -o $@
+$(chr_reads_variants): $(chr_ref) $(chr_reads_aligned_sorted) $(chr_ref_index_dict) $(chr_ref_index_fai) $(GATK)
+	$(GATK) -R $(chr_ref) -T HaplotypeCaller -I $(chr_reads_aligned_sorted) -o $@
 
 ################################################################################
 # Step 6 - Prune reads
