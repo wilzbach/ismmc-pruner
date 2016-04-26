@@ -174,14 +174,14 @@ $(chr_ref): $(chr) | data
 	./src/cut.py $(chr) -e $(cutoff)  > $@
 
 # index reference
-$(chr_ref_index_bwa): $(chr_ref) $(BWA)
+$(chr_ref_index_bwa): $(chr_ref) | $(BWA)
 	$(BWA) index $<
 
 # GATK needs more indexing
-$(chr_ref_index_fai): $(chr_ref) $(SAMTOOLS)
+$(chr_ref_index_fai): $(chr_ref) | $(SAMTOOLS)
 	$(SAMTOOLS) faidx $<
 
-$(chr_ref_index_dict): $(chr_ref) $(PICARD)
+$(chr_ref_index_dict): $(chr_ref) | $(PICARD)
 	$(PICARD) CreateSequenceDictionary REFERENCE=$< OUTPUT=$@
 
 ################################################################################
@@ -191,7 +191,7 @@ $(chr_ref_index_dict): $(chr_ref) $(PICARD)
 # mutate (SNPs, Indels, SVs) with two haplotypes
 ################################################################################
 
-$(chr_mut) $(chr_mut_vcf): $(chr_ref) $(chr_ref_index_fai) $(MASON_VARIATOR)
+$(chr_mut) $(chr_mut_vcf): $(chr_ref) $(chr_ref_index_fai) | $(MASON_VARIATOR)
 	$(MASON_VARIATOR) -ir $< -of $(chr_mut) -ov $(chr_mut_vcf) \
 		--out-breakpoints data/chr1.mut.tsv --num-haplotypes 2
 
@@ -204,7 +204,7 @@ $(chr_mut) $(chr_mut_vcf): $(chr_ref) $(chr_ref_index_fai) $(MASON_VARIATOR)
 
 # simulate paired-end reads
 #$(chr_reads) $(chr_reads_h1) $(chr_reads_h2): $(chr_ref) $(chr_mut)
-simulate_with_mason: $(chr_ref) $(chr_mut) $(MASON_SIMULATOR)
+simulate_with_mason: $(chr_ref) $(chr_mut) | $(MASON_SIMULATOR)
 	$(MASON_SIMULATOR) -ir $(chr_ref) -iv $(chr_mut_vcf) \
 		-o $(chr_reads_h1) -or $(chr_reads_h2) -oa $(chr_reads) \
 		--num-threads $(NPROCS) --read-name-prefix sim  \
@@ -220,12 +220,12 @@ simulate_with_mason: $(chr_ref) $(chr_mut) $(MASON_SIMULATOR)
 		--fragment-size-std-dev 1500
 
 #simulate_with_wgsim: $(chr_ref) $(chr_mut)
-$(chr_reads) $(chr_reads_h1) $(chr_reads_h2): $(chr_ref) $(chr_mut) $(WGSIM)
+$(chr_reads) $(chr_reads_h1) $(chr_reads_h2): $(chr_ref) $(chr_mut) | $(WGSIM)
 	$(WGSIM) -1 $(read_size) -2 $(read_size) -N $(num_reads) -R 0.0 -e 0.0 -r 0.0 \
 		$(chr_mut) $(chr_reads_h1) $(chr_reads_h2) > $(chr_reads)
 
 #$(chr_reads) $(chr_reads_h1) $(chr_reads_h2): $(chr_ref) $(chr_mut)
-simulate_with_pbsim: $(chr_ref) $(chr_mut) $(PBSIM)
+simulate_with_pbsim: $(chr_ref) $(chr_mut) | $(PBSIM)
 	$(PBSIM) --depth 20 $(chr_mut) --model_qc ~/hel/thesis/tools/pbsim-1.0.3/data/model_qc_clr --prefix sd
 	rm sd_000{1,2}.ref
 	#rm sd_000{1,2}.maf
@@ -242,19 +242,19 @@ simulate_with_pbsim: $(chr_ref) $(chr_mut) $(PBSIM)
 ################################################################################
 
 # align reads
-$(chr_reads_aligned_raw): $(chr_ref) $(chr_reads) $(chr_ref_index_bwa) $(BWA)
+$(chr_reads_aligned_raw): $(chr_ref) $(chr_reads) $(chr_ref_index_bwa) | $(BWA)
 	$(BWA) mem -t $(NPROCS) $(chr_ref) $(chr_reads_h1) $(chr_reads_h2) \
 		-R "@RG\tID:$(chr_ref)\tPG:bwa\tSM:$(chr_ref)" > $@
 
 # TODO join
 
 # each threads uses at least 800 MB (-m flag) - dont start too many!
-$(chr_reads_aligned_sorted): $(chr_reads_aligned_raw) $(SAMTOOLS)
+$(chr_reads_aligned_sorted): $(chr_reads_aligned_raw) | $(SAMTOOLS)
 	$(SAMTOOLS) sort --threads 4 -o $@ $<
 	$(SAMTOOLS) index $@
 
 # reads statistics
-$(chr_reads_stats): $(chr_reads_aligned_sorted) $(SAMTOOLS)
+$(chr_reads_stats): $(chr_reads_aligned_sorted) | $(SAMTOOLS)
 	$(SAMTOOLS) stats $< > $@
 
 # filter read report
@@ -270,7 +270,7 @@ $(chr_reads_coverage_pdf): $(chr_reads_coverage_tsv)
 ################################################################################
 
 # map variants
-$(chr_reads_variants): $(chr_ref) $(chr_reads_aligned_sorted) $(chr_ref_index_dict) $(chr_ref_index_fai) $(GATK)
+$(chr_reads_variants): $(chr_ref) $(chr_reads_aligned_sorted) $(chr_ref_index_dict) $(chr_ref_index_fai) | $(GATK)
 	$(GATK) -R $(chr_ref) -T HaplotypeCaller -I $(chr_reads_aligned_sorted) -o $@
 
 ################################################################################
