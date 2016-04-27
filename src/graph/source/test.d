@@ -1,20 +1,28 @@
+module pruner.app;
+
 import std.stdio;
 import pruner.formats;
 import pruner.graph;
 
-void maxFlowOpt(Read[] reads, uint maxReadsPerPos, uint minReadsPerPos)
+auto maxFlowOpt(Read[] reads, uint maxReadsPerPos, uint minReadsPerPos)
 {
     import std.algorithm;
     import std.range;
 
-    auto positions = reads.map!`a.start`.chain(reads.map!`a.end`).array.sort().release;
+    auto positions = reads.map!`a.start`
+                          .chain(reads.map!`a.end`)
+                          .array
+                          .sort()
+                          .release
+                          .uniq
+                          .array;
     auto backboneCapacity = maxReadsPerPos - minReadsPerPos;
     auto sourceSinkCapacity = maxReadsPerPos;
     auto readIntervalCapacity = 1;
     auto superSource = -1;
     auto superSink = positions[$-1] + 1;
 
-    Graph!true g;
+    DGraph g;
 
     // add backbone
     g.addEdge(superSource, positions[0], sourceSinkCapacity);
@@ -27,13 +35,17 @@ void maxFlowOpt(Read[] reads, uint maxReadsPerPos, uint minReadsPerPos)
         g.addEdge(read.start, read.end, readIntervalCapacity);
 
     auto m = g.maxFlow(superSource, superSink);
-    import std.stdio;
-    writeln(m);
+    return m;
 }
 
-void main()
+unittest
 {
+    import std.stdio;
     auto reads = [Read(0, 8), Read(0, 2), Read(1, 3), Read(1, 10),
                   Read(2, 6), Read(4, 10)];
-    maxFlowOpt(reads, 3, 1);
+    assert(maxFlowOpt(reads, 3, 1) == 3);
+    assert(maxFlowOpt(reads, 6, 1) == 6);
+    auto reads2 = [Read(1, 3), Read(2, 6), Read(4, 10)];
+    assert(maxFlowOpt(reads2, 3, 1) == 3);
+    //assert(maxFlowOpt([], 3, 1) == 1);
 }

@@ -1,8 +1,10 @@
 module pruner.graph;
 
+alias edge_t = int;
+
 struct TailEdge
 {
-    size_t capacity, cid;
+    edge_t capacity, cid, reverse_cid;
 }
 
 /**
@@ -11,46 +13,63 @@ A very simple graph lib
 struct Graph(bool directed = true)
 {
     import std.typecons;
-    TailEdge[size_t][size_t] g;
-    size_t cid = 0;
+    TailEdge[edge_t][edge_t] g;
+    edge_t cid = 0;
 
-    void addEdge(size_t tail, size_t head, size_t capacity)
+    void addEdge(edge_t tail, edge_t head)
     {
-        g[tail][head] = TailEdge(capacity, cid);
-        static if (!directed)
-            g[head][tail] = TailEdge(capacity, cid);
+        addEdge(tail, head, 0);
+    }
 
+    void addEdge(edge_t tail, edge_t head, edge_t capacity)
+    {
+        g[tail][head] = TailEdge(capacity, cid, ++cid);
+        // TODO: Ford-Fulkerson modification
+        g[head][tail] = TailEdge(0, cid, cid - 1);
         cid++;
     }
 
-    auto getEdgePairs(size_t v)
+    auto getEdgePairs(edge_t v)
     {
         import std.array;
         return g[v].byPair;
     }
 
-    TailEdge[] getEdgeTails(size_t v)
+    TailEdge[] getEdgeTails(edge_t v)
     {
         return g[v].values;
     }
+
+    void print()
+    {
+        // TODO rewrite toString
+        import std.array;
+        import std.stdio;
+        foreach (k,vs; g.byPair)
+        {
+            foreach(v,e; vs.byPair)
+            {
+                writefln("%2d-%2d: %d", k, v, e.capacity);
+            }
+        }
+    }
 }
 
+alias DGraph = Graph!true;
+alias UGraph = Graph!true;
+
 alias Path = TailEdge[];
-
-
 
 struct MaxFlow(Graph)
 {
     import std.algorithm;
     Graph g;
-    size_t[size_t] flow;
-    size_t source, sink;
+    edge_t[edge_t] flow;
 
-    this(ref Graph g, size_t source, size_t sink)
+    this(ref Graph g)
     {
         this.g = g;
-        this.source = source;
-        this.sink = sink;
+        init();
     }
 
     void init()
@@ -65,42 +84,59 @@ struct MaxFlow(Graph)
         }
     }
 
-    Path findPath(ref Graph g, size_t source, size_t sink, Path path)
+    Path findPath(edge_t source, edge_t sink, Path path = [])
     {
         if (source == sink)
             return path;
-        foreach (edge; g.getEdgePairs(source))
+        foreach (tailEdge, ref edge; g.getEdgePairs(source))
         {
-            int residual = edge[1].capacity - flow[edge];
-            if (residual > 0 && !path.canFind(edge[1]))
+            edge_t residual = edge.capacity - flow[edge.cid];
+            if (residual > 0 && !path.canFind(edge))
             {
-                auto result = findPath(g, edge[0], sink, path ~ [edge[1]]);
+                auto result = findPath(tailEdge, sink, path ~ [edge]);
                 if (result != null)
                     return result;
             }
         }
+        return null;
     }
 
-    size_t maxFlow()
+    edge_t maxFlow(edge_t source, edge_t sink)
     {
-        auto path = findPath(g, source, sink, []);
-        while (path.length > 0)
+        auto path = findPath(source, sink);
+        import std.stdio;
+        int n;
+        while (path != null)
         {
             auto flow = path.map!((x) => x.capacity - flow[x.cid]).minPos.front;
-            foreach (edge; path)
+            foreach (ref edge; path)
             {
-                this.flow[edge] += flow;
-                this.flow[edge] -= flow;
+                this.flow[edge.cid] += flow;
+                this.flow[edge.reverse_cid] -= flow;
             }
-            path = findPath(g, source, sink, []);
+            path = findPath(source, sink);
         }
         return g.getEdgeTails(source).map!((x) => flow[x.cid]).sum;
     }
 }
 
-auto maxFlow(Graph)(ref Graph g, size_t source, size_t sink)
+unittest
+{
+    import std.typecons;
+    import std.algorithm.comparison: equal;
+    DGraph g;
+    auto edges = [[0, 2], [0, 1], [1, 3]];
+    foreach (edge; edges)
+        g.addEdge(edge[0], edge[1], 3);
+
+    auto m = MaxFlow!DGraph(g);
+    // TODO: tail edge format is quite hard to read & debug
+    assert(m.findPath(0, 2) == [TailEdge(3, 0, 1)]);
+    assert(m.findPath(0, 3) == [TailEdge(3, 2, 3), TailEdge(3, 4, 5)]);
+}
+
+auto maxFlow(Graph)(ref Graph g, edge_t source, edge_t sink)
 {
     auto f = MaxFlow!Graph(g);
-    f.maxFlow();
-    return 1;
+    return f.maxFlow(source, sink);
 }
