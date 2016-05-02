@@ -1,4 +1,4 @@
-name "graph"
+name "pruner"
 description "A minimal D application."
 copyright "Copyright © 2016, xsebi"
 authors "xsebi"

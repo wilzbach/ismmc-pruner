@@ -1,3 +1,5 @@
+module pruner.functions;
+
 import pruner.formats;
 
 auto maxCov(Read[] reads)
@@ -5,7 +7,7 @@ auto maxCov(Read[] reads)
     import std.algorithm: map, sort, maxPos;
     import std.range: array, chain;
     import std.typecons: Tuple;
-    import accumulate;
+    import pruner.accumulate;
     alias CovTuple = Tuple!(int, "index", int, "cov");
     auto start = reads.map!((a) => CovTuple(a.start, 1));
     auto end = reads.map!((a) => CovTuple(a.end, -1));

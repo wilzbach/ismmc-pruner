@@ -1,10 +1,13 @@
 module pruner.graph;
 
+import pruner.formats;
+
 alias edge_t = int;
 
 struct TailEdge
 {
     edge_t capacity, cid, reverse_cid;
+    const(Read)* edge;
 }
 
 /**
@@ -21,12 +24,22 @@ struct Graph(bool directed = true)
         addEdge(tail, head, 0);
     }
 
-    void addEdge(edge_t tail, edge_t head, edge_t capacity)
+    void addEdge(edge_t tail, edge_t head, edge_t capacity, const(Read)* read = null)
     {
-        g[tail][head] = TailEdge(capacity, cid, ++cid);
+        g[tail][head] = TailEdge(capacity, cid, cid + 1, read);
+        cid_hashed[cid++] = &g[tail][head];
+
         // TODO: Ford-Fulkerson modification
         g[head][tail] = TailEdge(0, cid, cid - 1);
-        cid++;
+        cid_hashed[cid++] = &g[head][tail];
+
+    }
+
+    void updateEdge(edge_t tail, edge_t head, edge_t capacity, const(Read)* read = null)
+    {
+        if (! (tail in g && head in g[tail]))
+            addEdge(tail, head, capacity, read);
+        g[tail][head].capacity = capacity;
     }
 
     auto getEdgePairs(edge_t v)
@@ -38,6 +51,14 @@ struct Graph(bool directed = true)
     TailEdge[] getEdgeTails(edge_t v)
     {
         return g[v].values;
+    }
+
+    TailEdge*[edge_t] cid_hashed;
+
+    auto getEdgeByCid(edge_t cid)
+    {
+        TailEdge* e = null;
+        return cid_hashed[cid];
     }
 
     void print()
@@ -130,13 +151,15 @@ unittest
         g.addEdge(edge[0], edge[1], 3);
 
     auto m = MaxFlow!DGraph(g);
-    // TODO: tail edge format is quite hard to read & debug
+    // TODO: tail edge format is quite hard to read & debug -> remove
     assert(m.findPath(0, 2) == [TailEdge(3, 0, 1)]);
     assert(m.findPath(0, 3) == [TailEdge(3, 2, 3), TailEdge(3, 4, 5)]);
 }
 
 auto maxFlow(Graph)(ref Graph g, edge_t source, edge_t sink)
 {
+    import std.typecons;
     auto f = MaxFlow!Graph(g);
-    return f.maxFlow(source, sink);
+    auto val = f.maxFlow(source, sink);
+    return tuple!("max", "flow")(val, f);
 }

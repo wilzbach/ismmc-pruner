@@ -1,3 +1,5 @@
+module pruner.accumulate;
+
 import std.range: ElementType;
 private enum LastType {WITHIN, LAST, EMPTY};
 
