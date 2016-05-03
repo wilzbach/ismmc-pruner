@@ -100,6 +100,15 @@ PICARD_VERSION=2.2.2
 MASON_VARIATOR=progs/mason_variator
 SEQAN_VERSION=2.1.1
 
+CMAKE_VERSION=3.5.2
+
+# we need cmake3
+ifeq "$(cmake -version | head -n 1 | cut -f 3 -d ' ' | cut -f 1 -d .)" "3"
+CMAKE=cmake
+else
+CMAKE=build/cmake-$(CMAKE_VERSION)/cmake
+endif
+
 WGSIM=progs/wgsim
 
 PBSIM=progs/pbsim
@@ -124,8 +133,7 @@ PYTHON=python3
 PIP=pip
 PYTHON_VERSION:=$(python3 --version | cut -f 2 -d ' ' | cut -f 1,2 -d .)
 PYTHON_FOLDER=build/python
-CUSTOM_PYTHONPATH:="$(pwd)/build/python:$PYTHONPATH"
-export CUSTOM_PYTHONPATH
+#export PYTHONPATH
 
 $(PYTHON_FOLDER): | build
 	mkdir -p $@
@@ -147,7 +155,7 @@ build/bwa-$(BWA_VERSION): | build
 	| bzip2 -d | tar xf - -C $|
 
 progs/bwa: | build/bwa-$(BWA_VERSION) progs
-	cd $(word 1,$|) && make
+	cd $(word 1,$|) && make -j $(NPROCS)
 	cp $(word 1,$|)/bwa $@
 
 # symlink is needed for include directories
@@ -164,7 +172,7 @@ progs/samtools: | build/samtools-$(SAMTOOLS_VERSION) progs
 	cp $(word 1, $|)/samtools $@
 
 build/samtools-$(SAMTOOLS_VERSION)/htslib-$(SAMTOOLS_VERSION)/libhts.a: build/samtools-$(SAMTOOLS_VERSION)
-	cd $</htslib-$(SAMTOOLS_VERSION) && make libhts.a
+	cd $</htslib-$(SAMTOOLS_VERSION) && make -j $(NPROCS) libhts.a
 
 build/bam: build/samtools-$(SAMTOOLS_VERSION) | build
 	ln -s ./samtools-$(SAMTOOLS_VERSION) $|/bam
@@ -197,6 +205,12 @@ progs/picard: progs/picard.jar | build/picard-tools-$(PICARD_VERSION)
 	echo 'java $$JVM_OPTS -jar "$$DIR"/picard.jar "$$@"' >> $@
 	chmod +x $@
 
+build/cmake-$(CMAKE_VERSION): | build
+	curl -L http://www.cmake.org/files/v3.2/cmake-3.2.2.tar.gz | gunzip - | tar -xf - -C $|
+
+$(CMAKE): | build/cmake-$(CMAKE_VERSION)
+	cd $| && ./configure && make -j $(NPROCS)
+
 build/seqan-seqan-v$(SEQAN_VERSION): | build
 	curl -L https://github.com/seqan/seqan/archive/seqan-v$(SEQAN_VERSION).tar.gz | gunzip - | tar -xf - -C $|
 
@@ -213,10 +227,10 @@ SET(CMAKE_EXE_LINKER_FLAGS "-static")
 endef
 
 # Note: we make static build to increase portability
-build/seqan-seqan-v$(SEQAN_VERSION)/build: | build/seqan-seqan-v$(SEQAN_VERSION)
+build/seqan-seqan-v$(SEQAN_VERSION)/build: | build/seqan-seqan-v$(SEQAN_VERSION) $(CMAKE)
 	sed -e 's/find_package (OpenMP)/$(subst $(newline),\n,${SEQAN_PATCH})/' -i $|/apps/mason2/CMakeLists.txt
 	mkdir -p $|/build
-	CMAKE_EXE_LINKER_FLAGS="-static" cmake \
+	CMAKE_EXE_LINKER_FLAGS="-static" $(CMAKE) \
 		-DCMAKE_BUILD_TYPE=Release \
 		-DSEQAN_NO_NATIVE=1 \
 		-static \
@@ -277,8 +291,7 @@ $(chr): | perm
 
 # create reference "genome"
 $(chr_ref): $(chr) | data $(BIOPYTHON)
-	@echo $$PYTHONPATH
-	./src/cut.py $(chr) -e $(cutoff)  > $@
+	PYTHONPATH="$$(pwd)/build/python:$$PYTHONPATH" $(PYTHON) src/cut.py $(chr) -e $(cutoff)  > $@
 
 # index reference
 $(chr_ref_index_bwa): $(chr_ref) | $(BWA)
