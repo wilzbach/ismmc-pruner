@@ -146,6 +146,19 @@ WHATSHAP=$(PYTHON_FOLDER)/whatshap
 $(WHATSHAP): | $(PYTHON_FOLDER)
 	$(PIP) install --ignore-installed --target="$|" whatshap
 
+# cmake version in space
+_cmake_version_sp= $(subst ., ,$(CMAKE_VERSION))
+
+build/cmake-$(CMAKE_VERSION): | build
+	curl -L http://www.cmake.org/files/v$(word 1, $(_cmake_version_sp)).$(word 2, $(_cmake_version_sp))/cmake-$(CMAKE_VERSION).tar.gz | gunzip - | tar -xf - -C $|
+
+################################################################################
+# Build "build tools"
+################################################################################
+
+$(CMAKE): | build/cmake-$(CMAKE_VERSION)
+	cd $| && ./configure && make -j $(NPROCS)
+
 ################################################################################
 # Bio tools
 ################################################################################
@@ -204,12 +217,6 @@ progs/picard: progs/picard.jar | build/picard-tools-$(PICARD_VERSION)
 	echo 'DIR="$$( cd "$$( dirname "$${BASH_SOURCE[0]}" )" && pwd )"' >> $@
 	echo 'java $$JVM_OPTS -jar "$$DIR"/picard.jar "$$@"' >> $@
 	chmod +x $@
-
-build/cmake-$(CMAKE_VERSION): | build
-	curl -L http://www.cmake.org/files/v3.2/cmake-3.2.2.tar.gz | gunzip - | tar -xf - -C $|
-
-$(CMAKE): | build/cmake-$(CMAKE_VERSION)
-	cd $| && ./configure && make -j $(NPROCS)
 
 build/seqan-seqan-v$(SEQAN_VERSION): | build
 	curl -L https://github.com/seqan/seqan/archive/seqan-v$(SEQAN_VERSION).tar.gz | gunzip - | tar -xf - -C $|
