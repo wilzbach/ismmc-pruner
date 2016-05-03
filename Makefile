@@ -100,15 +100,6 @@ PICARD_VERSION=2.2.2
 MASON_VARIATOR=progs/mason_variator
 SEQAN_VERSION=2.1.1
 
-CMAKE_VERSION=3.5.2
-
-# we need cmake3
-ifeq "$$(cmake -version | head -n 1 | cut -f 3 -d ' ' | cut -f 1 -d .)" "3"
-CMAKE=cmake
-else
-CMAKE=build/cmake-$(CMAKE_VERSION)/bin/cmake
-endif
-
 WGSIM=progs/wgsim
 
 PBSIM=progs/pbsim
@@ -146,21 +137,30 @@ WHATSHAP=$(PYTHON_FOLDER)/whatshap
 $(WHATSHAP): | $(PYTHON_FOLDER)
 	$(PIP) install -q --ignore-installed --target="$|" whatshap
 
-# cmake version in space
-_cmake_version_sp= $(subst ., ,$(CMAKE_VERSION))
-
-build/cmake-$(CMAKE_VERSION): | build
-	curl -L http://www.cmake.org/files/v$(word 1, $(_cmake_version_sp)).$(word 2, $(_cmake_version_sp))/cmake-$(CMAKE_VERSION).tar.gz | gunzip - | tar -xf - -C $|
-
 ################################################################################
 # Build "build tools"
 ################################################################################
 
-$(CMAKE): | build/cmake-$(CMAKE_VERSION)
-	@echo We need cmake 3. Installing cmake. This will take a while.
-	cd $| && ./configure > /dev/null > /dev/null 2>&1
-	cd $| && make -j $(NPROCS) > /dev/null 2>&1
-	@echo Install finished.
+CMAKE_VERSION=3.5.2
+
+# we need cmake3
+ifeq "$$(cmake -version | head -n 1 | cut -f 3 -d ' ' | cut -f 1 -d .)" "3"
+CMAKE=cmake
+else
+CMAKE=build/cmake-$(CMAKE_VERSION)-Linux-$(PLATFORM)/bin/cmake
+endif
+
+CMAKE=build/cmake-$(CMAKE_VERSION)-Linux-$(PLATFORM)/bin/cmake
+
+# cmake version in space
+_cmake_version_sp= $(subst ., ,$(CMAKE_VERSION))
+
+PLATFORM:=$(shell uname -m)
+
+build/cmake-$(CMAKE_VERSION)-Linux-$(PLATFORM): | build
+	curl -L http://www.cmake.org/files/v$(word 1, $(_cmake_version_sp)).$(word 2, $(_cmake_version_sp))/cmake-$(CMAKE_VERSION)-Linux-$(PLATFORM).tar.gz | gunzip - | tar -xf - -C $|
+
+$(CMAKE): | build/cmake-$(CMAKE_VERSION)-Linux-$(PLATFORM)
 
 ################################################################################
 # Bio tools
