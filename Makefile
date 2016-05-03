@@ -454,4 +454,4 @@ data/haplotypes.compare: data/haplotypes.normal.log data/haplotypes.pruned.log
 
 # normal pipeline + coverage plots
 all: $(chr_reads_variants)
-all: $(chr_reads_coverage_pdf) $(chr_reads_variants)
+#all: $(chr_reads_coverage_pdf) $(chr_reads_variants)

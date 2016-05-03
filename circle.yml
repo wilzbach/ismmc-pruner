@@ -6,8 +6,12 @@ machine:
 
 dependencies:
   pre:
-      - make all
+      - make progs/mason_variator
   cache_directories:
     - "build/cmake-3.5.2"
     - "build/seqan-seqan-v2.1.1"
     - "build/python/whatshap"
+
+test:
+    override:
+      - make all
