@@ -70,7 +70,7 @@ ifeq ($(OS),Darwin) # Assume Mac OS X
 endif
 
 build:
-	mkdir -p perm
+	mkdir -p build
 perm:
 	mkdir -p perm
 data:
