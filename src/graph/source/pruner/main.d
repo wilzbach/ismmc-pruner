@@ -12,7 +12,7 @@ void main(string[] args)
     {
         // chr, start, stop, id
         auto cread = line.splitter(" ").map!(to!uint);
-        if (i % 9 != 0)
+        if (i % 2 != 0)
             writeln(i);
     }
 }

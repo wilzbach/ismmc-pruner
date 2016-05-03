@@ -124,6 +124,7 @@ progs/bwa: | build/bwa-$(BWA_VERSION) progs
 	cd $(word 1,$|) && make
 	cp $(word 1,$|)/bwa $@
 
+# symlink is needed for include directories
 build/samtools-$(SAMTOOLS_VERSION): | build
 	curl -L https://github.com/samtools/samtools/releases/download/$(SAMTOOLS_VERSION)\
 	/samtools-$(SAMTOOLS_VERSION).tar.bz2 \
@@ -135,6 +136,12 @@ progs/samtools: | build/samtools-$(SAMTOOLS_VERSION) progs
 	cd $(word 1,$|) && ./configure
 	cd $(word 1,$|) && make -j $(NPROCS)
 	cp $(word 1, $|)/samtools $@
+
+build/samtools-$(SAMTOOLS_VERSION)/htslib-$(SAMTOOLS_VERSION)/libhts.a: build/samtools-$(SAMTOOLS_VERSION)
+	cd $</htslib-$(SAMTOOLS_VERSION) && make libhts.a
+
+build/bam: build/samtools-$(SAMTOOLS_VERSION) | build
+	ln -s ./samtools-$(SAMTOOLS_VERSION) $|/bam
 
 build/gatk-protected-$(GATK_VERSION): | build
 	curl -L https://github.com/broadgsa/gatk-protected/archive/$(GATK_VERSION).tar.gz | tar -zxf - -C $|
@@ -212,11 +219,14 @@ progs/pbsim: | build/pbsim-$(PBSIM_VERSION)
 	cd $| && make -j $(NPROCS)
 	cp ./pbsim-$(PBSIM_VERSION)/src/pbsim $@
 
-progs/pruner_in: src/bam/in.c | progs build/samtools-$(SAMTOOLS_VERSION)
-	gcc -o $@ -lz -lhts -Ibuild/samtools-$(SAMTOOLS_VERSION) $(word 1,$<)
+# order matters
+progs/pruner_in: src/bam/in.c | build/samtools-$(SAMTOOLS_VERSION) build/samtools-$(SAMTOOLS_VERSION)/htslib-$(SAMTOOLS_VERSION)/libhts.a progs
+	gcc -I$(word 1,$|)/htslib-$(SAMTOOLS_VERSION) -Ibuild \
+		-L $(word 1,$|)/htslib-$(SAMTOOLS_VERSION) $< -l:libhts.a -lz -pthread -o $@
 
-progs/pruner_out: src/bam/out.c | progs build/samtools-$(SAMTOOLS_VERSION)
-	gcc -o $@ -lz -lhts -Ibuild/samtools-$(SAMTOOLS_VERSION) $(word 1,$<)
+progs/pruner_out: src/bam/out.c | build/samtools-$(SAMTOOLS_VERSION) build/samtools-$(SAMTOOLS_VERSION)/htslib-$(SAMTOOLS_VERSION)/libhts.a build/bam progs
+	gcc -I$(word 1,$|)/htslib-$(SAMTOOLS_VERSION) -Ibuild \
+		-L $(word 1,$|)/htslib-$(SAMTOOLS_VERSION) $< -l:libhts.a -lz -pthread -o $@
 
 # create object files
 $(PRUNER_BUILDDIR)/%.o : $(PRUNER_SOURCE_DIR)/%.d | $(DCC)
