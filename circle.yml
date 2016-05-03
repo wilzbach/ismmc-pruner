@@ -1,6 +1,8 @@
 machine:
   python:
     version: 3.5.0
+  java:
+    version: openjdk8
 
 dependencies:
   pre:
