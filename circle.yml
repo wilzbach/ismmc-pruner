@@ -1,3 +1,10 @@
+machine:
+  python:
+    version: 3.5.0
+
+#dependencies:
+  #pre:
+    #- sudo apt-get update -q; sudo apt-get install -y python3-setuptools
 test:
   override:
       - make all

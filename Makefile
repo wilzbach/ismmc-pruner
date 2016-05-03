@@ -120,10 +120,12 @@ build/dmd2/linux/bin64/dmd: build/dmd2
 # Python stuff
 ################################################################################
 
-PYTHON=/usr/bin/python3
-PIP=/usr/bin/pip3
+PYTHON=python3
+PIP=pip
 PYTHON_VERSION:=$(python3 --version | cut -f 2 -d ' ' | cut -f 1,2 -d .)
 PYTHON_FOLDER=build/python
+CUSTOM_PYTHONPATH:="$(pwd)/build/python:$PYTHONPATH"
+export CUSTOM_PYTHONPATH
 
 $(PYTHON_FOLDER): | build
 	mkdir -p $@
@@ -275,6 +277,7 @@ $(chr): | perm
 
 # create reference "genome"
 $(chr_ref): $(chr) | data $(BIOPYTHON)
+	@echo $$PYTHONPATH
 	./src/cut.py $(chr) -e $(cutoff)  > $@
 
 # index reference
