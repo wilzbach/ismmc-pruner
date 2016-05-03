@@ -129,7 +129,7 @@ build/gatk-protected-$(GATK_VERSION): | build
 	curl -L https://github.com/broadgsa/gatk-protected/archive/$(GATK_VERSION).tar.gz | tar -zxf - -C $|
 
 progs/gatk.jar: | build/gatk-protected-$(GATK_VERSION) progs
-	cd $(word 1,$|) && mvn install
+	cd $(word 1,$|) && mvn install -Dmaven.test.skip=true
 	cp $(word 1,$|)/target/GenomeAnalysisTK.jar $@
 
 progs/gatk: progs/gatk.jar | build/gatk-protected-$(GATK_VERSION)
