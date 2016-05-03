@@ -6,10 +6,12 @@ machine:
 
 dependencies:
   pre:
+      # this build takes quite a long time, we want to cache it!
       - make progs/mason_variator
   cache_directories:
     - "build/cmake-3.5.2"
     - "build/seqan-seqan-v2.1.1"
+    - "build/progs/mason_variator"
     - "build/python/whatshap"
 
 test:
