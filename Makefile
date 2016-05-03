@@ -25,35 +25,16 @@ num_reads=$$(( $(cutoff) * 15 / $(read_size)))
 ################################################################################
 
 chr=perm/chr1.fa
-# step 1: prepare reference
-chr_ref_base=data/chr1.cut
-chr_ref=$(chr_ref_base).fa
-chr_ref_index_bwa=$(chr_ref).bwt
-chr_ref_index_fai=$(chr_ref).fai
-chr_ref_index_dict=$(chr_ref_base).dict
-# step 2: mutate reference into haplotypes
-chr_mut=data/chr1.mut.fa
-chr_mut_vcf=data/chr1.mut.vcf
-# step 3: sample reads
-# the merged sam file is only needed for coverage analysis
-chr_reads=data/chr1.reads.bam
-chr_reads_h1=data/chr1.reads.h1.fq
-chr_reads_h2=data/chr1.reads.h2.fq
-# step 4: align & map
-chr_reads_aligned_raw=data/chr1.reads.ali.raw.bam
-chr_reads_aligned_sorted=data/chr1.reads.ali.sorted.bam
-# 4b) some statistics
-chr_reads_stats=data/chr1.reads.stats
-chr_reads_coverage_tsv=data/chr1.reads.coverage.tsv
-chr_reads_coverage_pdf=data/chr1.reads.coverage.pdf
-# step 5: call variants
-chr_reads_variants=data/chr1.reads.vcf
+chr_ref=data/chr1
+mut_suffix=.mut
 
 PRUNER_BUILDDIR = build/pruner
 PRUNER_SOURCE_DIR=src/graph/source
 PRUNER_SOURCES = $(wildcard $(PRUNER_SOURCE_DIR)/pruner/*.d)
 PRUNER_OBJECTS = $(patsubst $(PRUNER_SOURCE_DIR)/%.d, $(PRUNER_BUILDDIR)/%.o, $(PRUNER_SOURCES))
 PRUNERFLAGS_IMPORT = $(foreach dir,$(PRUNER_SOURCE_DIR), -I$(dir))
+
+chr_mut=$(chr_ref)$(mut_suffix)
 
 ################################################################################
 # Pretasks
@@ -120,22 +101,39 @@ build/dmd2/linux/bin64/dmd: build/dmd2
 # Python stuff
 ################################################################################
 
-PYTHON=python3
-PIP=pip
-PYTHON_VERSION:=$(python3 --version | cut -f 2 -d ' ' | cut -f 1,2 -d .)
+PYTHON_EXEC=python3
+PYTHON=build/python/bin/python3
+PIP=build/python/bin/pip3
+PYTHON_VERSION:=$(shell python3 --version | cut -f 2 -d ' ' | cut -f 1,2 -d .)
 PYTHON_FOLDER=build/python
-#export PYTHONPATH
+VIRTUALENV=/usr/bin/virtualenv
 
-$(PYTHON_FOLDER): | build
-	mkdir -p $@
+# in cause no virtualenv is installed
+ifeq ($(wildcard $(VIRTUALENV)),)
+	VIRTUALENV=$(HOME)/.local/lib/python$(PYTHON_VERSION)/site-packages/virtualenv.py
+endif
 
-BIOPYTHON=$(PYTHON_FOLDER)/Bio
-$(BIOPYTHON): | $(PYTHON_FOLDER)
-	$(PIP) install -q --ignore-installed --target="$|" biopython
+$(VIRTUALENV):
+	pip install --user virtualenv
 
-WHATSHAP=$(PYTHON_FOLDER)/whatshap
+$(PYTHON_FOLDER): | $(VIRTUALENV) build
+	virtualenv -p $(PYTHON_EXEC) build/python
+
+BIOPYTHON=$(PYTHON_FOLDER)/lib/python$(PYTHON_VERSION)/site-packages/Bio
+
+$(BIOPYTHON): | $(PYTHON_FOLDER) $(NUMPY)
+	@echo $(BIOPYTHON)
+	$(PIP) install --ignore-installed biopython
+
+$(NUMPY): | $(PYTHON_FOLDER)
+	$(PIP) install --ignore-installed numpy
+
+$(MATPLOTLIB): | $(PYTHON_FOLDER)
+	$(PIP) install --ignore-installed matplotlib
+
+WHATSHAP=$(PYTHON_FOLDER)/bin/whatshap
 $(WHATSHAP): | $(PYTHON_FOLDER)
-	$(PIP) install --ignore-installed --target="$|" whatshap
+	$(PIP) install --upgrade --ignore-installed whatshap
 
 ################################################################################
 # Build "build tools"
@@ -187,7 +185,7 @@ progs/samtools: | build/samtools-$(SAMTOOLS_VERSION) progs
 	cd $(word 1,$|) && make -j $(NPROCS)
 	cp $(word 1, $|)/samtools $@
 
-build/samtools-$(SAMTOOLS_VERSION)/htslib-$(SAMTOOLS_VERSION)/libhts.a: build/samtools-$(SAMTOOLS_VERSION)
+build/samtools-$(SAMTOOLS_VERSION)/htslib-$(SAMTOOLS_VERSION)/libhts.a: | build/samtools-$(SAMTOOLS_VERSION)
 	cd $</htslib-$(SAMTOOLS_VERSION) && make -j $(NPROCS) libhts.a
 
 build/bam: build/samtools-$(SAMTOOLS_VERSION) | build
@@ -286,6 +284,51 @@ progs/pruner: $(PRUNER_OBJECTS) | $(DCC)
 	$(DCC) $^ -of$@
 
 ################################################################################
+# Step 0) Pattern rules for suffixes
+# - Indexes are created on demand
+# - intermediate files will be removed on exit
+################################################################################
+
+# sub-level: foo.fa.bwt
+%.bwt: % | $(BWA)
+	$(BWA) index $<
+
+# sub-level: foo.fa.fai
+%.fai: % | $(SAMTOOLS)
+	$(SAMTOOLS) faidx $<
+
+# sub-level: foo.fa.idx
+%.bai: % | $(SAMTOOLS)
+	$(SAMTOOLS) index $<
+
+# same level: foo.fa and foo.dict
+%.dict: %.fa | $(PICARD)
+	$(PICARD) CreateSequenceDictionary REFERENCE=$< OUTPUT=$@
+
+# aligns foo.bar.read1.fq + foo.bar.read2.fq to reference foo.fa
+#  - the first dot determines the name of the reference
+#  - mem is recommended for longer reads (faster, more accurate)
+#  - gatk required us to have read groups and indexed file bam file
+#  TODO: $(word 1,$(subst ., ,data/chr1.mut))
+%.ali: $(chr_ref).fa.bwt %.read1.fq %.read2.fq | $(SAMTOOLS)
+	$(BWA) mem -t $(NPROCS) $(subst .bwt,,$<) $(word 2, $^) $(word 3, $^) \
+		-R "@RG\tID:$(chr_ref)\tPG:bwa\tSM:$(chr_ref)" > $@
+
+# each threads uses at least 800 MB (-m flag) - dont start too many!
+%.samsorted.bam: %.ali | $(SAMTOOLS)
+	$(SAMTOOLS) sort --threads 4 -o $@ $<
+	$(SAMTOOLS) index $@
+
+# Map variant from read to reference
+# - Sample dot pattern applies
+%.gvcf: $(chr_ref).fa.fai $(chr_ref).dict %.samsorted.bam | $(GATK)
+	$(GATK) -R $(subst .fai,,$<) -T HaplotypeCaller -I $(word 3,$^) -o $@
+
+# reads statistics
+%.samstats: % | $(SAMTOOLS)
+	$(SAMTOOLS) stats $< > $@
+
+################################################################################
 # Step 1 - create reference & index it
 # ------------------------------------
 #
@@ -300,19 +343,8 @@ $(chr): | perm
 	curl $(chromosomeURL) | gunzip > $@
 
 # create reference "genome"
-$(chr_ref): $(chr) | data $(BIOPYTHON)
-	PYTHONPATH="$$(pwd)/build/python:$$PYTHONPATH" $(PYTHON) src/cut.py $(chr) -e $(cutoff)  > $@
-
-# index reference
-$(chr_ref_index_bwa): $(chr_ref) | $(BWA)
-	$(BWA) index $<
-
-# GATK needs more indexing
-$(chr_ref_index_fai): $(chr_ref) | $(SAMTOOLS)
-	$(SAMTOOLS) faidx $<
-
-$(chr_ref_index_dict): $(chr_ref) | $(PICARD)
-	$(PICARD) CreateSequenceDictionary REFERENCE=$< OUTPUT=$@
+$(chr_ref).fa: $(chr) | data $(BIOPYTHON)
+	$(PYTHON) src/cut.py $(chr) -e $(cutoff)  > $@
 
 ################################################################################
 # Step 2 - mutate references into haplotypes
@@ -321,8 +353,8 @@ $(chr_ref_index_dict): $(chr_ref) | $(PICARD)
 # mutate (SNPs, Indels, SVs) with two haplotypes
 ################################################################################
 
-$(chr_mut) $(chr_mut_vcf): $(chr_ref) $(chr_ref_index_fai) | $(MASON_VARIATOR)
-	$(MASON_VARIATOR) -ir $< -of $(chr_mut) -ov $(chr_mut_vcf) \
+$(chr_mut).fa $(chr_mut).ref.vcf: $(chr_ref).fa $(chr_ref).fa.fai | $(MASON_VARIATOR)
+	$(MASON_VARIATOR) -ir $< -of $(chr_mut).fa -ov $(chr_mut).ref.vcf \
 		--out-breakpoints data/chr1.mut.tsv --num-haplotypes 2
 
 ################################################################################
@@ -332,76 +364,9 @@ $(chr_mut) $(chr_mut_vcf): $(chr_ref) $(chr_ref_index_fai) | $(MASON_VARIATOR)
 # Reads are read from fragments
 ################################################################################
 
-# simulate paired-end reads
-#$(chr_reads) $(chr_reads_h1) $(chr_reads_h2): $(chr_ref) $(chr_mut)
-simulate_with_mason: $(chr_ref) $(chr_mut) | $(MASON_SIMULATOR)
-	$(MASON_SIMULATOR) -ir $(chr_ref) -iv $(chr_mut_vcf) \
-		-o $(chr_reads_h1) -or $(chr_reads_h2) -oa $(chr_reads) \
-		--num-threads $(NPROCS) --read-name-prefix sim  \
-		--seq-technology 454 \
-		--num-fragments $(num_reads) \
-		--454-read-length-min 4000 \
-		--454-read-length-max 6000 \
-		--454-read-length-mean 5000 \
-		--454-read-length-stddev 400 \
-		--fragment-min-size 5000 \
-		--fragment-max-size 20000 \
-		--fragment-mean-size 15000 \
-		--fragment-size-std-dev 1500
-
-#simulate_with_wgsim: $(chr_ref) $(chr_mut)
-$(chr_reads) $(chr_reads_h1) $(chr_reads_h2): $(chr_ref) $(chr_mut) | $(WGSIM)
+$(chr_mut).read1.fq $(chr_mut).read2.fq: $(chr_mut).fa | $(WGSIM)
 	$(WGSIM) -1 $(read_size) -2 $(read_size) -N $(num_reads) -R 0.0 -e 0.0 -r 0.0 \
-		$(chr_mut) $(chr_reads_h1) $(chr_reads_h2) > $(chr_reads)
-
-#$(chr_reads) $(chr_reads_h1) $(chr_reads_h2): $(chr_ref) $(chr_mut)
-simulate_with_pbsim: $(chr_ref) $(chr_mut) | $(PBSIM)
-	$(PBSIM) --depth 20 $(chr_mut) --model_qc ~/hel/thesis/tools/pbsim-1.0.3/data/model_qc_clr --prefix sd
-	rm sd_000{1,2}.ref
-	#rm sd_000{1,2}.maf
-	mv sd_0001.fastq $(chr_reads_h1)
-	mv sd_0002.fastq $(chr_reads_h2)
-
-################################################################################
-# Step 4 - Align reads to reference
-# ---------------------------------
-#
-# mem is recommended for longer reads (faster, more accurate)
-#
-# gatk required us to have read groups and indexed file bam file
-################################################################################
-
-# align reads
-$(chr_reads_aligned_raw): $(chr_ref) $(chr_reads) $(chr_ref_index_bwa) | $(BWA)
-	$(BWA) mem -t $(NPROCS) $(chr_ref) $(chr_reads_h1) $(chr_reads_h2) \
-		-R "@RG\tID:$(chr_ref)\tPG:bwa\tSM:$(chr_ref)" > $@
-
-# TODO join
-
-# each threads uses at least 800 MB (-m flag) - dont start too many!
-$(chr_reads_aligned_sorted): $(chr_reads_aligned_raw) | $(SAMTOOLS)
-	$(SAMTOOLS) sort --threads 4 -o $@ $<
-	$(SAMTOOLS) index $@
-
-# reads statistics
-$(chr_reads_stats): $(chr_reads_aligned_sorted) | $(SAMTOOLS)
-	$(SAMTOOLS) stats $< > $@
-
-# filter read report
-$(chr_reads_coverage_tsv): $(chr_reads_stats)
-	cat $< | grep '^COV' | cut -f 3- > $@
-
-# read coverage plot
-$(chr_reads_coverage_pdf): $(chr_reads_coverage_tsv)
-	./src/coverage_stats.py $< -o $@
-
-################################################################################
-# Step 5 - Map variant from read to reference
-################################################################################
-
-# map variants
-$(chr_reads_variants): $(chr_ref) $(chr_reads_aligned_sorted) $(chr_ref_index_dict) $(chr_ref_index_fai) | $(GATK)
-	$(GATK) -R $(chr_ref) -T HaplotypeCaller -I $(chr_reads_aligned_sorted) -o $@
+		$< $@ $(chr_mut).read2.fq
 
 ################################################################################
 # Step 6 - Prune reads
@@ -414,32 +379,28 @@ $(chr_reads_variants): $(chr_ref) $(chr_reads_aligned_sorted) $(chr_ref_index_di
 # III) expects that the ordered ids are sorted
 ################################################################################
 
-data/pruning.bam.plain: $(chr_reads_aligned_sorted) | progs/pruner_in
+data/pruning.bam.plain: $(chr_mut).samsorted.bam | progs/pruner_in
 	$| $< > $@
 
 data/pruning.bam.ids: data/pruning.bam.plain progs/pruner
 	cat $< | $(word 2, $^) > $@
 
-data/pruning.bam.filtered: $(chr_reads_aligned_sorted) data/pruning.bam.ids | progs/pruner_out
+data/pruning.bam.filtered: $(chr_mut).samsorted.bam data/pruning.bam.ids | progs/pruner_out
 	cat $(word 2, $^) | $| $< $@ > /dev/null
 
 ################################################################################
 # Step 7 - Find haplotypes (pruned, normal)
 ################################################################################
 
-WHATSHAP_WRAPPED='PYTHONPATH="$$(pwd)/build/python:$$PYTHONPATH"'
-
 data/haplotypes.normal.vcf data/haplotypes.normal.log: hp.normal.im
-.INTERMEDIATE: hp.normal.im
-hp.normal.im: $(chr_reads_variants) $(chr_reads_aligned_sorted) | $(WHATSHAP)
-	whatshap $^ -o data/haplotypes.normal.vcf 2> data/haplotypes.normal.log
+hp.normal.im: $(chr_mut).gvcf $(chr_mut).samsorted.bam | $(WHATSHAP)
+	$(PYTHON) $(WHATSHAP) $^ -o data/haplotypes.normal.vcf 2> data/haplotypes.normal.log
 
 data/haplotypes.pruned.vcf data/haplotypes.pruned.log: hp.pruned.im
-.INTERMEDIATE: hp.pruned.im
-hp.pruned.im: $(chr_reads_variants) data/pruning.bam.filtered | $(WHATSHAP)
-	whatshap $^ -o data/haplotypes.pruned.vcf 2>  data/haplotypes.pruned.log
+hp.pruned.im: $(chr_mut).gvcf data/pruning.bam.filtered.bai | $(WHATSHAP)
+	$(PYTHON) $(WHATSHAP) $< $(subst .bai,,$(word 2,$^)) -o data/haplotypes.pruned.vcf 2>  data/haplotypes.pruned.log
 
-data/haplotypes.pruned.log:
+.INTERMEDIATE: hp.normal.im hp.pruned.im
 
 ################################################################################
 # Step 8 - Analysis
@@ -451,7 +412,18 @@ data/haplotypes.compare: data/haplotypes.normal.log data/haplotypes.pruned.log
 	@echo "===pruned===="
 	@grep "No. of" $(word 2, $^)
 
-
 # normal pipeline + coverage plots
 all: $(chr_reads_variants)
 #all: $(chr_reads_coverage_pdf) $(chr_reads_variants)
+
+################################################################################
+# TODO: statistics
+################################################################################
+
+# filter read report
+$(chr_reads).coverage.tsv: $(chr_reads).samstats
+	cat $< | grep '^COV' | cut -f 3- > $@
+
+# read coverage plot
+$(chr_reads).coverage.pdf: $(chr_reads).coverage.tsv
+	./src/coverage_stats.py $< -o $@
