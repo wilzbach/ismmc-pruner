@@ -103,10 +103,10 @@ SEQAN_VERSION=2.1.1
 CMAKE_VERSION=3.5.2
 
 # we need cmake3
-ifeq "$(cmake -version | head -n 1 | cut -f 3 -d ' ' | cut -f 1 -d .)" "3"
+ifeq "$$(cmake -version | head -n 1 | cut -f 3 -d ' ' | cut -f 1 -d .)" "3"
 CMAKE=cmake
 else
-CMAKE=build/cmake-$(CMAKE_VERSION)/cmake
+CMAKE=build/cmake-$(CMAKE_VERSION)/bin/cmake
 endif
 
 WGSIM=progs/wgsim
@@ -235,14 +235,14 @@ endef
 
 # Note: we make static build to increase portability
 build/seqan-seqan-v$(SEQAN_VERSION)/build: | build/seqan-seqan-v$(SEQAN_VERSION) $(CMAKE)
-	sed -e 's/find_package (OpenMP)/$(subst $(newline),\n,${SEQAN_PATCH})/' -i $|/apps/mason2/CMakeLists.txt
-	mkdir -p $|/build
+	sed -e 's/find_package (OpenMP)/$(subst $(newline),\n,${SEQAN_PATCH})/' -i $(word 1, $|)/apps/mason2/CMakeLists.txt
+	mkdir -p $(word 1,$|)/build
 	CMAKE_EXE_LINKER_FLAGS="-static" $(CMAKE) \
 		-DCMAKE_BUILD_TYPE=Release \
 		-DSEQAN_NO_NATIVE=1 \
 		-static \
 		-B$@ \
-		-H$|
+		-H$(word 1,$|)
 
 progs/mason_variator: | build/seqan-seqan-v$(SEQAN_VERSION)/build progs
 	cd $(word 1,$|) && make -j $(NPROCS) mason_variator
