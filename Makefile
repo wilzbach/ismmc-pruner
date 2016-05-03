@@ -133,7 +133,7 @@ progs/gatk.jar: | build/gatk-protected-$(GATK_VERSION) progs
 	cp $(word 1,$|)/target/GenomeAnalysisTK.jar $@
 
 progs/gatk: progs/gatk.jar | build/gatk-protected-$(GATK_VERSION)
-	echo "#!/bin/sh" > $@
+	echo "#!/bin/bash" > $@
 	echo 'DIR="$$( cd "$$( dirname "$${BASH_SOURCE[0]}" )" && pwd )"' >> $@
 	echo 'exec /usr/bin/java $$JVM_OPTS -jar "$$DIR/gatk.jar" "$$@"' >> $@
 	chmod +x $@
@@ -147,7 +147,7 @@ progs/picard.jar: | build/picard-tools-$(PICARD_VERSION) progs
 	cp $(word 1,$|)/picard.jar $@
 
 progs/picard: progs/picard.jar | build/picard-tools-$(PICARD_VERSION)
-	echo "#!/bin/sh" > $@
+	echo "#!/bin/bash" > $@
 	echo 'DIR="$$( cd "$$( dirname "$${BASH_SOURCE[0]}" )" && pwd )"' >> $@
 	echo 'java $$JVM_OPTS -jar "$$DIR"/picard.jar "$$@"' >> $@
 	chmod +x $@
