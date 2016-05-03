@@ -4,7 +4,7 @@
 
 SHELL=/bin/bash
 DCFLAGS = -w
-DCC=dmd
+DCC=/usr/bin/dmd
 
 ################################################################################
 # Dynamic variables
@@ -105,6 +105,12 @@ WGSIM=progs/wgsim
 PBSIM=progs/pbsim
 PBSIM_VERSION=1.0.3
 
+DMD_VERSION=2.071.0
+
+ifeq ($(wildcard $(DCC)),)
+	DCC=build/dmd/bin/dmd
+endif
+
 build/bwa-$(BWA_VERSION): | build
 	curl -L http://downloads.sourceforge.net/project/bio-bwa/bwa-$(BWA_VERSION).tar.bz2 \
 	| bzip2 -d | tar xf - -C $|
@@ -129,7 +135,8 @@ build/gatk-protected-$(GATK_VERSION): | build
 	curl -L https://github.com/broadgsa/gatk-protected/archive/$(GATK_VERSION).tar.gz | tar -zxf - -C $|
 
 progs/gatk.jar: | build/gatk-protected-$(GATK_VERSION) progs
-	cd $(word 1,$|) && mvn install -Dmaven.test.skip=true
+	sed 's/<module>external-example<\/module>//' -i $(word 1,$|)/public/pom.xml
+	cd $(word 1,$|) && mvn install -Dmaven.test.skip=true -P\!queue
 	cp $(word 1,$|)/target/GenomeAnalysisTK.jar $@
 
 progs/gatk: progs/gatk.jar | build/gatk-protected-$(GATK_VERSION)
@@ -212,6 +219,11 @@ $(PRUNER_BUILDDIR)/%.o : $(PRUNER_SOURCE_DIR)/%.d
 
 progs/pruner: $(PRUNER_OBJECTS)
 	$(DCC) $^ -of$@
+
+build/dmd: | build
+	curl -fsSL --retry 3 "http://downloads.dlang.org/releases/2.x/$(DMD_VERSION)/dmd.$(DMD_VERSION).linux.tar.xz" | tar -C ~ -Jxf -
+
+build/dmd/bin/dmd: build/dmd
 
 ################################################################################
 # Step 1 - create reference & index it
