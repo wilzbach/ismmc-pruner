@@ -4,7 +4,7 @@
 
 SHELL=/bin/bash
 DCFLAGS = -w
-DCC=/usr/bin/dmd
+DCC=/usr/bin/dmd3
 
 ################################################################################
 # Dynamic variables
@@ -108,8 +108,13 @@ PBSIM_VERSION=1.0.3
 DMD_VERSION=2.071.0
 
 ifeq ($(wildcard $(DCC)),)
-	DCC=build/dmd/bin/dmd
+	DCC=build/dmd2/linux/bin64/dmd
 endif
+
+build/dmd2: | build
+	curl -fSL --retry 3 "http://downloads.dlang.org/releases/2.x/$(DMD_VERSION)/dmd.$(DMD_VERSION).linux.tar.xz" | tar -Jxf - -C $|
+
+build/dmd2/linux/bin64/dmd: build/dmd2
 
 build/bwa-$(BWA_VERSION): | build
 	curl -L http://downloads.sourceforge.net/project/bio-bwa/bwa-$(BWA_VERSION).tar.bz2 \
@@ -214,16 +219,11 @@ progs/pruner_out: src/bam/out.c | progs
 	gcc -o $@ -lz -lhts $<
 
 # create object files
-$(PRUNER_BUILDDIR)/%.o : $(PRUNER_SOURCE_DIR)/%.d
+$(PRUNER_BUILDDIR)/%.o : $(PRUNER_SOURCE_DIR)/%.d | $(DCC)
 	$(DCC) $(DCFLAGS) $(DCFLAGS_LINK) $(PRUNERFLAGS_IMPORT) -c $< -of$@
 
-progs/pruner: $(PRUNER_OBJECTS)
+progs/pruner: $(PRUNER_OBJECTS) | $(DCC)
 	$(DCC) $^ -of$@
-
-build/dmd: | build
-	curl -fsSL --retry 3 "http://downloads.dlang.org/releases/2.x/$(DMD_VERSION)/dmd.$(DMD_VERSION).linux.tar.xz" | tar -C ~ -Jxf -
-
-build/dmd/bin/dmd: build/dmd
 
 ################################################################################
 # Step 1 - create reference & index it
