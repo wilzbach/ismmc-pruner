@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <bam/bam.h>
+#include <bam.h>
 
 int main(int argc, char** argv)
 {

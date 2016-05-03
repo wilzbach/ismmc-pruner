@@ -212,11 +212,11 @@ progs/pbsim: | build/pbsim-$(PBSIM_VERSION)
 	cd $| && make -j $(NPROCS)
 	cp ./pbsim-$(PBSIM_VERSION)/src/pbsim $@
 
-progs/pruner_in: src/bam/in.c | progs
-	gcc -o $@ -lz -lhts $<
+progs/pruner_in: src/bam/in.c | progs build/samtools-$(SAMTOOLS_VERSION)
+	gcc -o $@ -lz -lhts -Ibuild/samtools-$(SAMTOOLS_VERSION) $(word 1,$<)
 
-progs/pruner_out: src/bam/out.c | progs
-	gcc -o $@ -lz -lhts $<
+progs/pruner_out: src/bam/out.c | progs build/samtools-$(SAMTOOLS_VERSION)
+	gcc -o $@ -lz -lhts -Ibuild/samtools-$(SAMTOOLS_VERSION) $(word 1,$<)
 
 # create object files
 $(PRUNER_BUILDDIR)/%.o : $(PRUNER_SOURCE_DIR)/%.d | $(DCC)
