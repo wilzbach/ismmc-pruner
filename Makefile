@@ -4,7 +4,7 @@
 
 SHELL=/bin/bash
 DCFLAGS = -w
-DCC=/usr/bin/dmd3
+DCC=/usr/bin/dmd
 
 ################################################################################
 # Dynamic variables
@@ -70,13 +70,13 @@ ifeq ($(OS),Darwin) # Assume Mac OS X
 endif
 
 build:
-	mkdir -p build
+	mkdir -p $@
 perm:
-	mkdir -p perm
+	mkdir -p $@
 data:
-	mkdir -p data
+	mkdir -p $@
 progs:
-	mkdir -p progs
+	mkdir -p $@
 
 ################################################################################
 # PROGS
@@ -115,6 +115,30 @@ build/dmd2: | build
 	curl -fSL --retry 3 "http://downloads.dlang.org/releases/2.x/$(DMD_VERSION)/dmd.$(DMD_VERSION).linux.tar.xz" | tar -Jxf - -C $|
 
 build/dmd2/linux/bin64/dmd: build/dmd2
+
+################################################################################
+# Python stuff
+################################################################################
+
+PYTHON=/usr/bin/python3
+PIP=/usr/bin/pip3
+PYTHON_VERSION:=$(python3 --version | cut -f 2 -d ' ' | cut -f 1,2 -d .)
+PYTHON_FOLDER=build/python
+
+$(PYTHON_FOLDER): | build
+	mkdir -p $@
+
+BIOPYTHON=$(PYTHON_FOLDER)/Bio
+$(BIOPYTHON): | $(PYTHON_FOLDER)
+	$(PIP) install --ignore-installed --target="$|" biopython
+
+WHATSHAP=$(PYTHON_FOLDER)/whatshap
+$(WHATSHAP): | $(PYTHON_FOLDER)
+	$(PIP) install --ignore-installed --target="$|" whatshap
+
+################################################################################
+# Bio tools
+################################################################################
 
 build/bwa-$(BWA_VERSION): | build
 	curl -L http://downloads.sourceforge.net/project/bio-bwa/bwa-$(BWA_VERSION).tar.bz2 \
@@ -220,7 +244,7 @@ progs/pbsim: | build/pbsim-$(PBSIM_VERSION)
 	cp ./pbsim-$(PBSIM_VERSION)/src/pbsim $@
 
 # order matters
-progs/pruner_in: src/bam/in.c | build/samtools-$(SAMTOOLS_VERSION) build/samtools-$(SAMTOOLS_VERSION)/htslib-$(SAMTOOLS_VERSION)/libhts.a progs
+progs/pruner_in: src/bam/in.c | build/samtools-$(SAMTOOLS_VERSION) build/samtools-$(SAMTOOLS_VERSION)/htslib-$(SAMTOOLS_VERSION)/libhts.a build/bam progs
 	gcc -I$(word 1,$|)/htslib-$(SAMTOOLS_VERSION) -Ibuild \
 		-L $(word 1,$|)/htslib-$(SAMTOOLS_VERSION) $< -l:libhts.a -lz -pthread -o $@
 
@@ -250,7 +274,7 @@ $(chr): | perm
 	curl $(chromosomeURL) | gunzip > $@
 
 # create reference "genome"
-$(chr_ref): $(chr) | data
+$(chr_ref): $(chr) | data $(BIOPYTHON)
 	./src/cut.py $(chr) -e $(cutoff)  > $@
 
 # index reference
@@ -379,12 +403,12 @@ data/pruning.bam.filtered: $(chr_reads_aligned_sorted) data/pruning.bam.ids | pr
 
 data/haplotypes.normal.vcf data/haplotypes.normal.log: hp.normal.im
 .INTERMEDIATE: hp.normal.im
-hp.normal.im: $(chr_reads_variants) $(chr_reads_aligned_sorted)
+hp.normal.im: $(chr_reads_variants) $(chr_reads_aligned_sorted) | $(WHATSHAP)
 	whatshap $^ -o data/haplotypes.normal.vcf 2> data/haplotypes.normal.log
 
 data/haplotypes.pruned.vcf data/haplotypes.pruned.log: hp.pruned.im
 .INTERMEDIATE: hp.pruned.im
-hp.pruned.im: $(chr_reads_variants) data/pruning.bam.filtered
+hp.pruned.im: $(chr_reads_variants) data/pruning.bam.filtered | $(WHATSHAP)
 	whatshap $^ -o data/haplotypes.pruned.vcf 2>  data/haplotypes.pruned.log
 
 data/haplotypes.pruned.log:
