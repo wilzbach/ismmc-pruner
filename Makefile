@@ -1,5 +1,28 @@
+################################################################################
+# Compiler variables
+################################################################################
+
 SHELL=/bin/bash
+DCFLAGS = -w
+DCC=dmd
+
+################################################################################
+# Dynamic variables
+################################################################################
+
 chromosomeURL="ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCA_000001405.15_GRCh38/GCA_000001405.15_GRCh38_assembly_structure/Primary_Assembly/assembled_chromosomes/FASTA/chr1.fna.gz"
+
+cutoff=1000000
+#cutoff=248956422
+read_size=5000
+#TODO: update
+# bash only supports integers
+# TODO increase to 30
+num_reads=$$(( $(cutoff) * 15 / $(read_size)))
+
+################################################################################
+# File variables
+################################################################################
 
 chr=perm/chr1.fa
 # step 1: prepare reference
@@ -25,14 +48,12 @@ chr_reads_coverage_tsv=data/chr1.reads.coverage.tsv
 chr_reads_coverage_pdf=data/chr1.reads.coverage.pdf
 # step 5: call variants
 chr_reads_variants=data/chr1.reads.vcf
-cutoff=1000000
-#cutoff=248956422
-#todo set to 5000
-read_size=5000
-#TODO: update
-# bash only supports integers
-# TODO increase to 30
-num_reads=$$(( $(cutoff) * 15 / $(read_size)))
+
+PRUNER_BUILDDIR = build/pruner
+PRUNER_SOURCE_DIR=src/graph/source
+PRUNER_SOURCES = $(wildcard $(PRUNER_SOURCE_DIR)/pruner/*.d)
+PRUNER_OBJECTS = $(patsubst $(PRUNER_SOURCE_DIR)/%.d, $(PRUNER_BUILDDIR)/%.o, $(PRUNER_SOURCES))
+PRUNERFLAGS_IMPORT = $(foreach dir,$(PRUNER_SOURCE_DIR), -I$(dir))
 
 ################################################################################
 # Pretasks
@@ -48,6 +69,8 @@ ifeq ($(OS),Darwin) # Assume Mac OS X
 	NPROCS:=$(shell system_profiler | awk '/Number Of CPUs/{print $4}{next;}')
 endif
 
+build:
+	mkdir -p perm
 perm:
 	mkdir -p perm
 data:
@@ -71,7 +94,7 @@ SAMTOOLS_VERSION=1.3
 GATK=progs/gatk
 GATK_VERSION=3.5
 
-PICARD=progs/gatk
+PICARD=progs/picard
 PICARD_VERSION=2.2.2
 
 MASON_VARIATOR=progs/mason_variator
@@ -82,78 +105,113 @@ WGSIM=progs/wgsim
 PBSIM=progs/pbsim
 PBSIM_VERSION=1.0.3
 
-progs/bwa-$(BWA_VERSION): | progs
+build/bwa-$(BWA_VERSION): | build
 	curl -L http://downloads.sourceforge.net/project/bio-bwa/bwa-$(BWA_VERSION).tar.bz2 \
-	| bzip2 -d | tar xf - -C progs
+	| bzip2 -d | tar xf - -C $|
 
-progs/bwa: | progs/bwa-$(BWA_VERSION)
-	cd progs/bwa-$(BWA_VERSION) && make
-	ln -s ./bwa-$(BWA_VERSION)/bwa $@
+progs/bwa: | build/bwa-$(BWA_VERSION) progs
+	cd $(word 1,$|) && make
+	cp $(word 1,$|)/bwa $@
 
-progs/samtools-$(SAMTOOLS_VERSION): | progs
+build/samtools-$(SAMTOOLS_VERSION): | build
 	curl -L https://github.com/samtools/samtools/releases/download/$(SAMTOOLS_VERSION)\
 	/samtools-$(SAMTOOLS_VERSION).tar.bz2 \
-	| bzip2 -d | tar xf - -C progs
+	| bzip2 -d | tar xf - -C $|
 
-progs/samtools: | progs/samtools-$(SAMTOOLS_VERSION)
-	cd progs/samtools-$(SAMTOOLS_VERSION) && \
+progs/samtools: | build/samtools-$(SAMTOOLS_VERSION) progs
+	cd $(word 1,$|) && \
 		sed -e 's|#!/usr/bin/env python|#!/usr/bin/env python2|' -i misc/varfilter.py
-	cd progs/samtools-$(SAMTOOLS_VERSION) && ./configure
-	cd progs/samtools-$(SAMTOOLS_VERSION) && make -j $(NPROCS)
-	ln -s ./samtools-$(SAMTOOLS_VERSION)/samtools $@
+	cd $(word 1,$|) && ./configure
+	cd $(word 1,$|) && make -j $(NPROCS)
+	cp $(word 1, $|)/samtools $@
 
-progs/gatk-protected-$(GATK_VERSION): | progs
-	curl -L https://github.com/broadgsa/gatk-protected/archive/$(GATK_VERSION).tar.gz | tar -zxf - -C progs
+build/gatk-protected-$(GATK_VERSION): | build
+	curl -L https://github.com/broadgsa/gatk-protected/archive/$(GATK_VERSION).tar.gz | tar -zxf - -C $|
 
-progs/gatk: | progs/gatk-protected-$(GATK_VERSION)
-	cd progs/gatk-protected-$(GATK_VERSION) && mvn install
+progs/gatk.jar: | build/gatk-protected-$(GATK_VERSION) progs
+	cd $(word 1,$|) && mvn install
+	cp $(word 1,$|)/target/GenomeAnalysisTK.jar $@
+
+progs/gatk: progs/gatk.jar | build/gatk-protected-$(GATK_VERSION)
 	echo "#!/bin/sh" > $@
 	echo 'DIR="$$( cd "$$( dirname "$${BASH_SOURCE[0]}" )" && pwd )"' >> $@
-	echo 'exec /usr/bin/java $$JVM_OPTS -jar "$$DIR/gatk-protected-$(GATK_VERSION)/target/GenomeAnalysisTK.jar" "$$@"' >> $@
+	echo 'exec /usr/bin/java $$JVM_OPTS -jar "$$DIR/gatk.jar" "$$@"' >> $@
 	chmod +x $@
 
-progs/picard-tools-$(PICARD_VERSION): | progs
+build/picard-tools-$(PICARD_VERSION): | build
 	wget https://github.com/broadinstitute/picard/releases/download/$(PICARD_VERSION)/picard-tools-$(PICARD_VERSION).zip -O $@.zip
-	unzip -d progs $@.zip
+	unzip -d $| $@.zip
 	rm $@.zip
 
-progs/picard: | progs/picard-tools-$(PICARD_VERSION)
+progs/picard.jar: | build/picard-tools-$(PICARD_VERSION) progs
+	cp $(word 1,$|)/picard.jar $@
+
+progs/picard: progs/picard.jar | build/picard-tools-$(PICARD_VERSION)
 	echo "#!/bin/sh" > $@
 	echo 'DIR="$$( cd "$$( dirname "$${BASH_SOURCE[0]}" )" && pwd )"' >> $@
-	echo 'java $$JVM_OPTS -jar "$$DIR"/picard-tools-$(PICARD_VERSION)/picard.jar "$$@"' >> $@
+	echo 'java $$JVM_OPTS -jar "$$DIR"/picard.jar "$$@"' >> $@
 	chmod +x $@
 
-progs/seqan-seqan-v$(SEQAN_VERSION): | progs
-	curl -L https://github.com/seqan/seqan/archive/seqan-v$(SEQAN_VERSION).tar.gz | gunzip - | tar -xf - -C progs
+build/seqan-seqan-v$(SEQAN_VERSION): | build
+	curl -L https://github.com/seqan/seqan/archive/seqan-v$(SEQAN_VERSION).tar.gz | gunzip - | tar -xf - -C $|
 
-progs/seqan-seqan-v$(SEQAN_VERSION)/build: | progs/seqan-seqan-v$(SEQAN_VERSION)
-	mkdir -p progs/seqan-seqan-v$(SEQAN_VERSION)/build
-	cmake \
+# workaround to have multiline strings in a makefile
+define newline
+
+
+endef
+
+define SEQAN_PATCH
+SET(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+SET(BUILD_SHARED_LIBRARIES OFF)
+SET(CMAKE_EXE_LINKER_FLAGS "-static")
+endef
+
+# Note: we make static build to increase portability
+build/seqan-seqan-v$(SEQAN_VERSION)/build: | build/seqan-seqan-v$(SEQAN_VERSION)
+	sed -e 's/find_package (OpenMP)/$(subst $(newline),\n,${SEQAN_PATCH})/' -i $|/apps/mason2/CMakeLists.txt
+	mkdir -p $|/build
+	CMAKE_EXE_LINKER_FLAGS="-static" cmake \
 		-DCMAKE_BUILD_TYPE=Release \
+		-DSEQAN_NO_NATIVE=1 \
+		-static \
 		-B$@ \
-		-Hprogs/seqan-seqan-v$(SEQAN_VERSION)
+		-H$|
 
-progs/mason_variator: | progs/seqan-seqan-v$(SEQAN_VERSION)/build
-	cd progs/seqan-seqan-v$(SEQAN_VERSION)/build && make -j $(NPROCS) mason_variator
-	cp progs/seqan-seqan-v$(SEQAN_VERSION)/build/bin/mason_variator $@
+progs/mason_variator: | build/seqan-seqan-v$(SEQAN_VERSION)/build progs
+	cd $(word 1,$|) && make -j $(NPROCS) mason_variator
+	cp $(word 1,$|)/bin/mason_variator $@
 
-progs/mason_simulator: | progs/seqan-seqan-v$(SEQAN_VERSION)/build
-	cd progs/seqan-seqan-v$(SEQAN_VERSION)/build && make -j $(NPROCS) mason_simulator
-	cp progs/seqan-seqan-v$(SEQAN_VERSION)/build/bin/mason_variator $@
+progs/mason_simulator: | build/seqan-seqan-v$(SEQAN_VERSION)/build progs
+	cd $(word 1,$|) && make -j $(NPROCS) mason_simulator
+	cp $(word 1,$|)/bin/mason_simulator $@
 
-progs/wgsim-master: | progs
-	curl -L https://github.com/lh3/wgsim/archive/master.tar.gz | tar -zxf - -C progs
+build/wgsim-master: | build
+	curl -L https://github.com/lh3/wgsim/archive/master.tar.gz | tar -zxf - -C $|
 
-progs/wgsim: | progs/wgsim-master
-	gcc -g -O2 -Wall -o $@ progs/wgsim-master/wgsim.c -lz -lm
+progs/wgsim: | build/wgsim-master
+	gcc -g -O2 -Wall -o $@ build/wgsim-master/wgsim.c -lz -lm
 
-progs/pbsim-$(PBSIM_VERSION): | progs
-	curl -L https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/pbsim/pbsim-$(PBSIM_VERSION).tar.gz | tar -zxf - -C progs
+build/pbsim-$(PBSIM_VERSION): | build
+	curl -L https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/pbsim/pbsim-$(PBSIM_VERSION).tar.gz | tar -zxf - -C $|
 
-progs/pbsim: | progs/pbsim-$(PBSIM_VERSION)
-	cd progs/pbsim-$(PBSIM_VERSION) && ./configure
-	cd progs/pbsim-$(PBSIM_VERSION) && make -j $(NPROCS)
-	ln -s ./pbsim-$(PBSIM_VERSION)/src/pbsim $@
+progs/pbsim: | build/pbsim-$(PBSIM_VERSION)
+	cd $| && ./configure
+	cd $| && make -j $(NPROCS)
+	cp ./pbsim-$(PBSIM_VERSION)/src/pbsim $@
+
+progs/pruner_in: src/bam/in.c | progs
+	gcc -o $@ -lz -lhts $<
+
+progs/pruner_out: src/bam/out.c | progs
+	gcc -o $@ -lz -lhts $<
+
+# create object files
+$(PRUNER_BUILDDIR)/%.o : $(PRUNER_SOURCE_DIR)/%.d
+	$(DCC) $(DCFLAGS) $(DCFLAGS_LINK) $(PRUNERFLAGS_IMPORT) -c $< -of$@
+
+progs/pruner: $(PRUNER_OBJECTS)
+	$(DCC) $^ -of$@
 
 ################################################################################
 # Step 1 - create reference & index it
@@ -275,16 +333,49 @@ $(chr_reads_variants): $(chr_ref) $(chr_reads_aligned_sorted) $(chr_ref_index_di
 
 ################################################################################
 # Step 6 - Prune reads
+# TODO: Can be combined in one step, once this is working & well tested
+#
+# I) We transform the BAM filter in a chr,start,stop,id format
+# II) We run the pruner - it outputs the pruned ids
+# III) We filter the BAM file based on the pruned ids
+#
+# III) expects that the ordered ids are sorted
 ################################################################################
+
+data/pruning.bam.plain: $(chr_reads_aligned_sorted) | progs/pruner_in
+	$| $< > $@
+
+data/pruning.bam.ids: data/pruning.bam.plain progs/pruner
+	cat $< | $(word 2, $^) > $@
+
+data/pruning.bam.filtered: $(chr_reads_aligned_sorted) data/pruning.bam.ids | progs/pruner_out
+	cat $(word 2, $^) | $| $< $@ > /dev/null
 
 ################################################################################
 # Step 7 - Find haplotypes (pruned, normal)
 ################################################################################
 
+data/haplotypes.normal.vcf data/haplotypes.normal.log: hp.normal.im
+.INTERMEDIATE: hp.normal.im
+hp.normal.im: $(chr_reads_variants) $(chr_reads_aligned_sorted)
+	whatshap $^ -o data/haplotypes.normal.vcf 2> data/haplotypes.normal.log
+
+data/haplotypes.pruned.vcf data/haplotypes.pruned.log: hp.pruned.im
+.INTERMEDIATE: hp.pruned.im
+hp.pruned.im: $(chr_reads_variants) data/pruning.bam.filtered
+	whatshap $^ -o data/haplotypes.pruned.vcf 2>  data/haplotypes.pruned.log
+
+data/haplotypes.pruned.log:
 
 ################################################################################
 # Step 8 - Analysis
 ################################################################################
+
+data/haplotypes.compare: data/haplotypes.normal.log data/haplotypes.pruned.log
+	@echo "===normal===="
+	@grep "No. of" $<
+	@echo "===pruned===="
+	@grep "No. of" $(word 2, $^)
 
 
 # normal pipeline + coverage plots
