@@ -1,8 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <bam/bam.h>
-#include <tuple>
-#include "flow.h"
 
 int main(int argc, char** argv)
 {
@@ -11,17 +9,14 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    bam1_t* b = bam_init1();
     bamFile in = bam_open(argv[1], "r");
     bam_header_t* header;
     if (in == NULL){
         printf("opening input file failed");
         return -1;
     }
-    if (b == NULL){
-        printf("init bam buffer failed");
-        return -1;
-    }
+
+    bam1_t* b = bam_init1();
 
     bamFile out = bam_open(argv[2], "w");
     if (out == NULL){
@@ -33,17 +28,24 @@ int main(int argc, char** argv)
     if(bam_header_write(out, header) < 0){
         printf("writing header failed");
     }
-    reads reads;
+
+    long nextPrunedId;
+    if(!scanf ("%lu", &nextPrunedId)){
+        printf("warning: no ids provided");
+        return -1;
+    }
+    long id = 0;
     while (bam_read1(in, b) >= 0) {
         // write BAM back
-        //bam_write1(out, b);
-        // mpos?
-        reads.push_back(sread(b->core.pos, b->core.l_qseq));
-        //printf("%d %d", b->core.pos, b->core.l_qseq);
-        break;
+        if (nextPrunedId != id++) {
+            bam_write1(out, b);
+        } else {
+            printf("pruning: id: %lu, pos: %d, length: %d\n", nextPrunedId, b->core.pos, b->core.l_qseq);
+            if(!scanf ("%lu", &nextPrunedId)){
+                break;
+            }
+        }
     }
-
-    Flow::maxFlowOpt(reads, 1, 3);
 
     // closing all resources
     bam_header_destroy(header);
