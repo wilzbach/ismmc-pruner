@@ -4,13 +4,8 @@ machine:
 
 dependencies:
   pre:
-    sudo apt-get install -y software-properties-common
-    sudo add-apt-repository ppa:george-edison55/cmake-3.x
-    sudo apt-get update
-dependencies:
+      - make all
   cache_directories:
     - "build/cmake-3.5.2"
     - "build/seqan-seqan-v2.1.1"
-test:
-  override:
-      - make all
+    - "build/python/whatshap"

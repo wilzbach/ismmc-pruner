@@ -135,7 +135,7 @@ $(BIOPYTHON): | $(PYTHON_FOLDER)
 
 WHATSHAP=$(PYTHON_FOLDER)/whatshap
 $(WHATSHAP): | $(PYTHON_FOLDER)
-	$(PIP) install -q --ignore-installed --target="$|" whatshap
+	$(PIP) install --ignore-installed --target="$|" whatshap
 
 ################################################################################
 # Build "build tools"
