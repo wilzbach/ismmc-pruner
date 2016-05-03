@@ -140,11 +140,11 @@ $(PYTHON_FOLDER): | build
 
 BIOPYTHON=$(PYTHON_FOLDER)/Bio
 $(BIOPYTHON): | $(PYTHON_FOLDER)
-	$(PIP) install --ignore-installed --target="$|" biopython
+	$(PIP) install -q --ignore-installed --target="$|" biopython
 
 WHATSHAP=$(PYTHON_FOLDER)/whatshap
 $(WHATSHAP): | $(PYTHON_FOLDER)
-	$(PIP) install --ignore-installed --target="$|" whatshap
+	$(PIP) install -q --ignore-installed --target="$|" whatshap
 
 # cmake version in space
 _cmake_version_sp= $(subst ., ,$(CMAKE_VERSION))
@@ -157,7 +157,10 @@ build/cmake-$(CMAKE_VERSION): | build
 ################################################################################
 
 $(CMAKE): | build/cmake-$(CMAKE_VERSION)
-	cd $| && ./configure && make -j $(NPROCS)
+	@echo We need cmake 3. Installing cmake. This will take a while.
+	cd $| && ./configure > /dev/null > /dev/null 2>&1
+	cd $| && make -j $(NPROCS) > /dev/null 2>&1
+	@echo Install finished.
 
 ################################################################################
 # Bio tools
@@ -423,6 +426,8 @@ data/pruning.bam.filtered: $(chr_reads_aligned_sorted) data/pruning.bam.ids | pr
 ################################################################################
 # Step 7 - Find haplotypes (pruned, normal)
 ################################################################################
+
+WHATSHAP_WRAPPED='PYTHONPATH="$$(pwd)/build/python:$$PYTHONPATH"'
 
 data/haplotypes.normal.vcf data/haplotypes.normal.log: hp.normal.im
 .INTERMEDIATE: hp.normal.im
