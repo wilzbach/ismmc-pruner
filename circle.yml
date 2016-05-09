@@ -6,8 +6,9 @@ machine:
 
 dependencies:
   pre:
-      # this build takes quite a long time, we want to cache it!
+      # this build takes quite a long time, we want to cache them!
       - make progs/mason_variator
+      - make progs/gatk.jar
   cache_directories:
     - "build/cmake-3.5.2"
     - "build/seqan-seqan-v2.1.1"

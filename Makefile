@@ -196,7 +196,7 @@ build/gatk-protected-$(GATK_VERSION): | build
 
 progs/gatk.jar: | build/gatk-protected-$(GATK_VERSION) progs
 	sed 's/<module>external-example<\/module>//' -i $(word 1,$|)/public/pom.xml
-	cd $(word 1,$|) && mvn install -Dmaven.test.skip=true -P\!queue
+	cd $(word 1,$|) && mvn compile -Dmaven.test.skip=true -P\!queue
 	cp $(word 1,$|)/target/GenomeAnalysisTK.jar $@
 
 progs/gatk: | progs/gatk.jar
