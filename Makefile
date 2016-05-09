@@ -114,7 +114,7 @@ ifeq ($(wildcard $(VIRTUALENV)),)
 endif
 
 $(VIRTUALENV):
-	pip install --user virtualenv
+	pip install --user --upgrade virtualenv
 
 $(PYTHON_FOLDER): | $(VIRTUALENV) build
 	virtualenv -p $(PYTHON_EXEC) build/python
@@ -199,7 +199,7 @@ progs/gatk.jar: | build/gatk-protected-$(GATK_VERSION) progs
 	cd $(word 1,$|) && mvn install -Dmaven.test.skip=true -P\!queue
 	cp $(word 1,$|)/target/GenomeAnalysisTK.jar $@
 
-progs/gatk: progs/gatk.jar | build/gatk-protected-$(GATK_VERSION)
+progs/gatk: | progs/gatk.jar
 	echo "#!/bin/bash" > $@
 	echo 'DIR="$$( cd "$$( dirname "$${BASH_SOURCE[0]}" )" && pwd )"' >> $@
 	echo 'exec /usr/bin/java $$JVM_OPTS -jar "$$DIR/gatk.jar" "$$@"' >> $@
