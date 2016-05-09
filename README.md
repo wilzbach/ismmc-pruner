@@ -1,4 +1,4 @@
-[![Circle CI](https://circleci.com/gh/wilzbach/read-pruner.svg?style=svg)](https://circleci.com/gh/wilzbach/read-pruner)
+[![Circle CI](https://circleci.com/gh/wilzbach/read-prunner.svg?style=svg)](https://circleci.com/gh/wilzbach/read-prunner)
 
 * curl
 * gzip
