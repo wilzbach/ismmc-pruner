@@ -413,7 +413,7 @@ data/haplotypes.compare: data/haplotypes.normal.log data/haplotypes.pruned.log
 	@grep "No. of" $(word 2, $^)
 
 # normal pipeline + coverage plots
-all: $(chr_reads_variants)
+all: data/haplotypes.compare
 #all: $(chr_reads_coverage_pdf) $(chr_reads_variants)
 
 ################################################################################
