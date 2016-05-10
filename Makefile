@@ -195,6 +195,8 @@ build/gatk-protected-$(GATK_VERSION): | build
 	curl -L https://github.com/broadgsa/gatk-protected/archive/$(GATK_VERSION).tar.gz | tar -zxf - -C $|
 
 progs/gatk.jar: | build/gatk-protected-$(GATK_VERSION) progs
+	sed 's/^import oracle.jrockit/\/\/import oracle.jrockit/' \
+		-i $(word 1,$|)/public/gatk-tools-public/src/main/java/org/broadinstitute/gatk/tools/walkers/varianteval/VariantEval.java
 	sed 's/<module>external-example<\/module>//' -i $(word 1,$|)/public/pom.xml
 	cd $(word 1,$|) && mvn verify -P\!queue
 	cp $(word 1,$|)/target/GenomeAnalysisTK.jar $@
