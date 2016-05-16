@@ -28,12 +28,9 @@ chr=perm/chr1.fa
 chr_ref=data/chr1
 mut_suffix=.mut
 
-PRUNER_BUILDDIR = build/pruner
-PRUNER_SOURCE_DIR=src/graph/source
-PRUNER_SOURCES = $(wildcard $(PRUNER_SOURCE_DIR)/pruner/*.d)
-PRUNER_OBJECTS = $(patsubst $(PRUNER_SOURCE_DIR)/%.d, $(PRUNER_BUILDDIR)/%.o, $(PRUNER_SOURCES))
-PRUNERFLAGS_IMPORT = $(foreach dir,$(PRUNER_SOURCE_DIR), -I$(dir))
-
+PRUNER_SOURCE_DIR=src/graph
+PRUNER_BUILDDIR=build/pruner
+PRUNER_TESTDIR=build/pruner_test
 chr_mut=$(chr_ref)$(mut_suffix)
 
 ################################################################################
@@ -58,6 +55,8 @@ data:
 	mkdir -p $@
 progs:
 	mkdir -p $@
+
+PLATFORM:=$(shell uname -m)
 
 ################################################################################
 # PROGS
@@ -94,7 +93,6 @@ endif
 
 build/dmd2: | build
 	curl -fSL --retry 3 "http://downloads.dlang.org/releases/2.x/$(DMD_VERSION)/dmd.$(DMD_VERSION).linux.tar.xz" | tar -Jxf - -C $|
-
 build/dmd2/linux/bin64/dmd: build/dmd2
 
 ################################################################################
@@ -131,9 +129,10 @@ $(NUMPY): | $(PYTHON_FOLDER)
 $(MATPLOTLIB): | $(PYTHON_FOLDER)
 	$(PIP) install --ignore-installed matplotlib
 
-WHATSHAP=$(PYTHON_FOLDER)/bin/whatshap
-$(WHATSHAP): | $(PYTHON_FOLDER)
-	$(PIP) install --upgrade --ignore-installed whatshap
+#WHATSHAP=$(PYTHON_FOLDER)/bin/whatshap
+WHATSHAP=$(HOME)/.local/bin/whatshap
+#$(WHATSHAP): | $(PYTHON_FOLDER)
+	#$(PIP) install --upgrade --ignore-installed whatshap
 
 ################################################################################
 # Build "build tools"
@@ -152,8 +151,6 @@ CMAKE=build/cmake-$(CMAKE_VERSION)-Linux-$(PLATFORM)/bin/cmake
 
 # cmake version in space
 _cmake_version_sp= $(subst ., ,$(CMAKE_VERSION))
-
-PLATFORM:=$(shell uname -m)
 
 build/cmake-$(CMAKE_VERSION)-Linux-$(PLATFORM): | build
 	curl -L http://www.cmake.org/files/v$(word 1, $(_cmake_version_sp)).$(word 2, $(_cmake_version_sp))/cmake-$(CMAKE_VERSION)-Linux-$(PLATFORM).tar.gz | gunzip - | tar -xf - -C $|
@@ -278,12 +275,40 @@ progs/pruner_out: src/bam/out.c | build/samtools-$(SAMTOOLS_VERSION) build/samto
 	gcc -I$(word 1,$|)/htslib-$(SAMTOOLS_VERSION) -Ibuild \
 		-L $(word 1,$|)/htslib-$(SAMTOOLS_VERSION) $< -l:libhts.a -lz -pthread -o $@
 
+################################################################################
+# D part: compile
+################################################################################
+
+PRUNERFLAGS_IMPORT = $(foreach dir,$(PRUNER_SOURCE_DIR), -I$(dir))
+PRUNER_SOURCES = $(wildcard $(PRUNER_SOURCE_DIR)/pruner/*.d)
+PRUNER_OBJECTS = $(patsubst $(PRUNER_SOURCE_DIR)/%.d, $(PRUNER_BUILDDIR)/%.o, $(PRUNER_SOURCES))
+
+build/pruner_test: | build
+	mkdir -p $@
+
 # create object files
 $(PRUNER_BUILDDIR)/%.o : $(PRUNER_SOURCE_DIR)/%.d | $(DCC)
 	$(DCC) $(DCFLAGS) $(DCFLAGS_LINK) $(PRUNERFLAGS_IMPORT) -c $< -of$@
 
 progs/pruner: $(PRUNER_OBJECTS) | $(DCC)
 	$(DCC) $^ -of$@
+
+################################################################################
+# D part: test
+################################################################################
+
+PRUNER_TESTOBJECTS = $(patsubst $(PRUNER_SOURCE_DIR)/%.d, $(PRUNER_TESTDIR)/%.o, $(PRUNER_SOURCES))
+
+# create object files for unittest
+$(PRUNER_TESTDIR)/%.o : $(PRUNER_SOURCE_DIR)/%.d | $(DCC) $(PRUNER_TESTDIR)
+	$(DCC) -unittest $(DCFLAGS) $(DCFLAGS_LINK) $(PRUNERFLAGS_IMPORT) -c $< -of$@
+
+$(PRUNER_TESTDIR)/bin: $(PRUNER_TESTOBJECTS) | $(DCC) $(PRUNER_TESTDIR)
+	$(DCC) $^ -of$@
+	$(DCC) -unittest $^ -of$@
+
+test: $(PRUNER_TESTDIR)/bin
+	$<
 
 ################################################################################
 # Step 0) Pattern rules for suffixes
