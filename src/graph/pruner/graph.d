@@ -133,7 +133,7 @@ alias DGraph = Graph!true;
 
 alias Path = TailEdge[];
 
-class MaxFlow(Graph)
+struct MaxFlow(Graph)
 {
     import std.algorithm;
     Graph g;
@@ -209,7 +209,7 @@ unittest
 auto maxFlow(Graph)(auto ref Graph g, edge_t source, edge_t sink)
 {
     import std.typecons;
-    auto f = new MaxFlow!Graph(g);
+    auto f = MaxFlow!Graph(g);
     auto val = f.maxFlow(source, sink);
     import std.stdio;
     return tuple!("max", "flow")(val, f);

@@ -153,7 +153,7 @@ void printFlow(MaxFlow!DGraph flow, edge_t source, bool[size_t] seen, size_t ind
         {
             seen[edge.cid] = true;
             string isRead = edge.read ? " read" : "";
-            writefln("%s%2d-%2d: %s (flow: %d)%s %s", ' '.repeat(indent), source, target, edge.capacity, flow.flow[edge.cid], isRead, edge.cid);
+            writefln("%s%2d-%2d: %s (flow: %d)%s", ' '.repeat(indent), source, target, edge.capacity, flow.flow[edge.cid], isRead);
             printFlow(flow, target, seen, indent + 2);
         }
     }
@@ -179,7 +179,6 @@ unittest
 
 // TODO: graph doesn't allow duplicate edges
 // -> allow multiple edges for the same graph
-version(none)
 unittest
 {
     auto reads = [Read(0, 10), Read(0, 11),
@@ -205,7 +204,6 @@ unittest
                   //Read(0, 25), Read(26, 50)];
 // 3, tOpt = 1, no pruning
 
-version(none)
 unittest
 {
     auto reads = [Read(0, 8), Read(0, 2), Read(1, 3), Read(1, 10),
