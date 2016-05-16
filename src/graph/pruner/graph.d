@@ -7,7 +7,7 @@ alias edge_t = int;
 struct TailEdge
 {
     edge_t capacity, cid, reverse_cid;
-    const(Read)* edge;
+    const(Read)* read;
 }
 
 /**
