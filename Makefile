@@ -294,17 +294,11 @@ progs/pruner: $(PRUNER_OBJECTS) | $(DCC)
 	$(DCC) $^ -of$@
 
 ################################################################################
-# D part: test
+# D part: test (one-step)
 ################################################################################
 
-PRUNER_TESTOBJECTS = $(patsubst $(PRUNER_SOURCE_DIR)/%.d, $(PRUNER_TESTDIR)/%.o, $(PRUNER_SOURCES))
-
 # create object files for unittest
-$(PRUNER_TESTDIR)/%.o : $(PRUNER_SOURCE_DIR)/%.d | $(DCC) $(PRUNER_TESTDIR)
-	$(DCC) -unittest $(DCFLAGS) $(DCFLAGS_LINK) $(PRUNERFLAGS_IMPORT) -c $< -of$@
-
-$(PRUNER_TESTDIR)/bin: $(PRUNER_TESTOBJECTS) | $(DCC) $(PRUNER_TESTDIR)
-	$(DCC) $^ -of$@
+$(PRUNER_TESTDIR)/bin: $(PRUNER_SOURCES) | $(DCC) $(PRUNER_TESTDIR)
 	$(DCC) -unittest $^ -of$@
 
 test: $(PRUNER_TESTDIR)/bin
