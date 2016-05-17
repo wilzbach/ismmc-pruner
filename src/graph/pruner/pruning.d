@@ -3,9 +3,8 @@ module pruner.pruning;
 import pruner.app;
 import pruner.formats;
 
-auto maxFlowPruning(immutable(Read)[] reads, edge_t maxReadsPerPos)
+const(Read)*[] maxFlowPruning(R)(R reads, edge_t maxReadsPerPos)
 {
-    //auto opt = maxFlowOpt(reads, maxReadsPerPos);
-    //const(Read)*[] pruned = opt.flow.prune;
-    return [0];
+    auto opt = maxFlowOpt(reads, maxReadsPerPos);
+    return opt.flow.prune;
 }

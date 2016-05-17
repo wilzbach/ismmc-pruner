@@ -23,7 +23,7 @@ private:
     TailEdge superSourceEdge, superSinkEdge;
 
 public:
-    this(ref Read[] reads)
+    this(R)(R reads)
     {
         g = new DGraph();
         getPositions(reads);
@@ -34,15 +34,16 @@ public:
             g.addEdge(read.start, read.end, readIntervalCapacity, &read);
     }
 
-    void getPositions(ref Read[] reads)
+    void getPositions(R)(R reads)
     {
-        this.positions = reads.map!`a.start`
-                          .chain(reads.map!`a.end`)
-                          .array
-                          .sort()
-                          .release
-                          .uniq
-                          .array;
+        foreach (ref read; reads)
+        {
+            // + 0 works around the fact that a.start is immutable
+            positions ~= read.start + 0;
+            positions ~= read.end + 0;
+        }
+
+        positions = positions.sort().release.uniq.array;
         superSink = positions[$-1] + 1;
     }
 
@@ -120,7 +121,7 @@ public:
     }
 }
 
-auto maxFlowOpt(ref Read[] reads, edge_t maxReadsPerPos)
+auto maxFlowOpt(R)(R reads, edge_t maxReadsPerPos)
 {
     auto m = MaxFlowOpt(reads);
     return m.binarySearch(maxReadsPerPos);
@@ -165,20 +166,21 @@ unittest
     printGraph(opt.flow.g, opt.flow, File("debug/paper_first_example.eps", "w"));
 
     const(Read)*[] pruned = opt.flow.prune;
-    import std.algorithm: map, equal;
     // print what's pruned
     //pruned.map!`*a`.writeln;
 
     // TODO: Obs that the algorithm currently delete more than strictly needed.
-    assert(pruned.map!`*a`.equal([Read(6, 11, 4),
-                                  Read(12, 17, 6),
-                                  Read(12, 17, 7),
-                                  Read(0, 5, 1),
-                                  Read(0, 5, 0)]));
+    assert(pruned.equals([
+                    Read(6, 11, 4),
+                    Read(12, 17, 6),
+                    Read(12, 17, 7),
+                    Read(0, 5, 1),
+                    Read(0, 5, 0)]));
+
     // A more ambitious implementation would return the following (or equivalent):
-    //assert(pruned.map!`*a`.equal([Read(6, 11, 4),
-    //                              Read(12, 17, 7),
-    //                              Read(0, 5, 0)]));
+    //assert(pruned.equal!`*a == b`([Read(6, 11, 4),
+                                   //Read(12, 17, 7),
+                                   //Read(0, 5, 0)]));
     writeln("Test 1 OK");
 }
 
@@ -196,19 +198,11 @@ unittest
     assert(opt.tOpt == 1);
 
     const(Read)*[] pruned = opt.flow.prune;
-
-    import std.algorithm: map, equal;
-    assert(pruned.map!`*a`.equal([Read(0, 11, 1),
-                                  Read(20, 31, 3),
-                                  Read(40, 50, 4)]));
+    assert(pruned.equals([Read(0, 11, 1),
+                          Read(20, 31, 3),
+                          Read(40, 50, 4)]));
     writeln("Test 2 OK");
 }
-
-    //auto reads = [Read(0, 10),
-                  //Read(20, 30),
-                  //Read(40, 50),
-                  //Read(0, 25), Read(26, 50)];
-// 3, tOpt = 1, no pruning
 
 unittest
 {
@@ -223,8 +217,7 @@ unittest
     const(Read)*[] pruned = opt.flow.prune;
     assert(pruned.length == 2);
 
-    import std.algorithm: map, equal;
-    assert(pruned.map!`*a`.equal([Read(2, 6, 4), Read(1, 3, 2)]));
+    assert(pruned.equals([Read(2, 6, 4), Read(1, 3, 2)]));
 
     //assert(maxFlowOpt(reads, 3).max == 3);
     //assert(maxFlowOpt(reads, 6, 1) == 6);

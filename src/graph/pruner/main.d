@@ -11,6 +11,8 @@ else
 void main(string[] args)
 {
     import std.getopt;
+    import core.stdc.stdlib: exit;
+    import std.exception: enforce;
 
     enum Progs {maxflow, random}
     Progs progs;
@@ -19,14 +21,16 @@ void main(string[] args)
 
     auto helpInformation = getopt(
         args,
-        "v|verbose", &verbose,
+        std.getopt.config.required,
         "max-coverage|m", &maxCoverage,
+        "v|verbose", &verbose,
         "p|program", &progs);
 
     if (helpInformation.helpWanted)
     {
-      defaultGetoptPrinter("Some information about the program.",
-        helpInformation.options);
+        defaultGetoptPrinter("Some information about the program.",
+            helpInformation.options);
+        exit(1);
     }
 
     auto reads = getReads(stdin);
@@ -48,20 +52,24 @@ void main(string[] args)
 /**
 Deserializes the reads from a text format (e.g. stdin)
 */
-immutable(Read)[] getReads(File fileIn)
+auto getReads(File fileIn)
 {
     import std.range: enumerate, dropOne;
-    import std.algorithm: splitter, map;
+    import std.algorithm: splitter, map, move, moveEmplace;
     import std.conv: to;
 
-    immutable(Read)[] reads;
+    // TODO: make reads immutable by default
+    Read[] reads;
     reads.reserve(20_000);
     foreach (i, ref line; fileIn.byLine.enumerate)
     {
         // chr, start, stop, id
         auto cread = line.splitter('\t').map!(to!uint);
         cread.dropOne;
-        reads ~= Read(cread.dropOne.front, cread.dropOne.front, cread.dropOne.front);
+        auto r = Read(cread.dropOne.front, cread.dropOne.front, cread.dropOne.front);
+        // read is not-copyable, but moveable
+         ++reads.length;
+        move(r, reads[$-1]);
     }
     return reads;
 }
@@ -79,20 +87,27 @@ unittest
 /**
 Serializes the reads to a text format
 */
-void outputReads(R)(R rs, File outFile)
+void outputReads(const(Read)*[] reads, File outFile)
 {
-    foreach (const ref r; rs)
-        outFile.writeln(r);
+    foreach (const ref r; reads)
+        outFile.writeln(r.id);
 }
 
 unittest
 {
-    // virtual file
+    import std.algorithm: equal, map;
     import std.process: pipe;
+    import std.range: array;
+
+    const(Read)[] reads = [Read(10, 20, 0), Read(20, 30, 1), Read(30, 40, 3)];
+    const(Read)*[] constReads;
+    foreach (ref r; reads)
+        constReads ~= &r;
     auto p = pipe();
-    outputReads([0, 1, 3], p.writeEnd);
+
+    outputReads(constReads, p.writeEnd);
     p.writeEnd.close();
+
     auto output = p.readEnd.byLineCopy;
-    import std.algorithm: equal;
     assert(output.equal(["0", "1", "3"]));
 }
