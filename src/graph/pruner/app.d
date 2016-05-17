@@ -167,7 +167,19 @@ unittest
     const(Read)*[] pruned = opt.flow.prune;
     import std.algorithm: map, equal;
     // print what's pruned
-    pruned.map!`*a`.writeln;
+    //pruned.map!`*a`.writeln;
+
+    // TODO: Obs that the algorithm currently delete more than strictly needed.
+    assert(pruned.map!`*a`.equal([Read(6, 11, 4),
+                                  Read(12, 17, 6),
+                                  Read(12, 17, 7),
+                                  Read(0, 5, 1),
+                                  Read(0, 5, 0)]));
+    // A more ambitious implementation would return the following (or equivalent):
+    //assert(pruned.map!`*a`.equal([Read(6, 11, 4),
+    //                              Read(12, 17, 7),
+    //                              Read(0, 5, 0)]));
+    writeln("Test 1 OK");
 }
 
 // TODO: graph doesn't allow duplicate edges
@@ -189,6 +201,7 @@ unittest
     assert(pruned.map!`*a`.equal([Read(0, 11, 1),
                                   Read(20, 31, 3),
                                   Read(40, 50, 4)]));
+    writeln("Test 2 OK");
 }
 
     //auto reads = [Read(0, 10),
@@ -218,4 +231,5 @@ unittest
     //auto reads2 = [Read(1, 3), Read(2, 6), Read(4, 10)];
     //assert(maxFlowOpt(reads2, 3, 1) == 3);
     //assert(maxFlowOpt([], 3, 1) == 1);
+    writeln("Test 3 OK");
 }
