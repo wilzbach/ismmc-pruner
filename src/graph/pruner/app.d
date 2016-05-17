@@ -171,7 +171,6 @@ unittest
 
 // TODO: graph doesn't allow duplicate edges
 // -> allow multiple edges for the same graph
-version(none)
 unittest
 {
     auto reads = [Read(0, 10), Read(0, 11),
@@ -197,7 +196,6 @@ unittest
                   //Read(0, 25), Read(26, 50)];
 // 3, tOpt = 1, no pruning
 
-version(none)
 unittest
 {
     auto reads = [Read(0, 8), Read(0, 2), Read(1, 3), Read(1, 10),
