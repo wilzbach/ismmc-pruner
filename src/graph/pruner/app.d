@@ -162,7 +162,7 @@ unittest
     assert(opt.tOpt == 1);
 
     //printFlow(opt.flow, -1, [-2: true]);
-    printGraph(opt.flow.g, opt.flow, File("test.eps", "w"));
+    printGraph(opt.flow.g, opt.flow, File("debug/paper_first_example.eps", "w"));
 
     const(Read)*[] pruned = opt.flow.prune;
     import std.algorithm: map, equal;

@@ -19,13 +19,6 @@ void printFlow(MaxFlow!DGraph flow, edge_t source, bool[size_t] seen, size_t ind
 
 }
 
-string uniqueTempPath()
-{
-    import std.file, std.uuid;
-    import std.path: buildPath;
-    return buildPath(tempDir(), randomUUID().toString());
-}
-
 void printGraph(DGraph graph, MaxFlow!DGraph flow, File output, string name = "MaxFlow graph")
 {
     import std.process;
@@ -33,11 +26,10 @@ void printGraph(DGraph graph, MaxFlow!DGraph flow, File output, string name = "M
     import std.conv: to;
     import std.array: byPair;
     import std.algorithm: map, joiner;
-    //auto tmpFile = uniqueTempPath();
     auto pipes = pipeProcess(["dot", "-Tps"], Redirect.all);
     auto file = pipes.stdin;
 
-    file.writefln("digraph %s {", name);
+    file.writefln(`digraph "%s" {`, name);
     file.writeln("rankdir = LR;");
     {
         void printEdge(edge_t source, bool[size_t] seen)
@@ -68,7 +60,11 @@ void printGraph(DGraph graph, MaxFlow!DGraph flow, File output, string name = "M
     file.close();
 
     if (wait(pipes.pid) != 0)
-        writeln("Compilation failed!");
+    {
+        stderr.writeln("Compilation failed!");
+        foreach (line; pipes.stderr.byLine)
+            stderr.writeln(line);
+    }
 
     // TODO: write directly to this file
     foreach (line; pipes.stdout.byLine)
