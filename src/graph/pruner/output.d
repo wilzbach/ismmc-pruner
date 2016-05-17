@@ -26,7 +26,7 @@ string uniqueTempPath()
     return buildPath(tempDir(), randomUUID().toString());
 }
 
-void printGraph(DGraph graph, MaxFlow!DGraph flow, File output)
+void printGraph(DGraph graph, MaxFlow!DGraph flow, File output, string name = "MaxFlow graph")
 {
     import std.process;
     import std.format: format;
@@ -37,7 +37,7 @@ void printGraph(DGraph graph, MaxFlow!DGraph flow, File output)
     auto pipes = pipeProcess(["dot", "-Tps"], Redirect.all);
     auto file = pipes.stdin;
 
-    file.writeln("digraph g {");
+    file.writefln("digraph %s {", name);
     file.writeln("rankdir = LR;");
     {
         void printEdge(edge_t source, bool[size_t] seen)
