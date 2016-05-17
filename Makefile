@@ -299,7 +299,7 @@ progs/pruner: $(PRUNER_OBJECTS) | $(DCC)
 
 # create object files for unittest
 $(PRUNER_TESTDIR)/bin: $(PRUNER_SOURCES) | $(DCC) $(PRUNER_TESTDIR)
-	$(DCC) -unittest $^ -of$@
+	$(DCC) -unittest $^ -of$@ -g
 
 test: $(PRUNER_TESTDIR)/bin
 	$<
