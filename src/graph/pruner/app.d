@@ -3,6 +3,7 @@ module pruner.app;
 import std.stdio;
 import pruner.formats;
 import pruner.graph;
+import pruner.output;
 
 struct MaxFlowOpt
 {
@@ -60,6 +61,7 @@ public:
     // updates capacity of backbone + super source, sink
     void updateBackbone(edge_t minReadsPerPos, edge_t maxReadsPerPos)
     {
+        // k - t
         edge_t backboneCapacity = maxReadsPerPos - minReadsPerPos;
 
         // update super source, sink
@@ -93,6 +95,7 @@ public:
         {
             auto m = (l + r) / 2;
             // maxFlow with k=maxReadsPerPos,t=m
+            writeln("binarySearch", m);
             updateBackbone(m, maxReadsPerPos);
             auto lastFlow = g.maxFlow(superSource, superSink);
 
@@ -111,6 +114,8 @@ public:
                 lastValidK = m;
             }
         }
+        version (unittest)
+            updateBackbone(lastValidK, maxReadsPerPos);
         return tuple!("tOpt", "flow")(lastValidK, lastValidFlow.flow);
     }
 }
@@ -144,22 +149,6 @@ const(Read)*[] prune(Flow)(Flow f)
     return pruned;
 }
 
-void printFlow(MaxFlow!DGraph flow, edge_t source, bool[size_t] seen, size_t indent = 0)
-{
-    import std.range: repeat;
-    foreach (target, edge; flow.g.getEdgePairs(source))
-    {
-        if (source < target && edge.cid !in seen)
-        {
-            seen[edge.cid] = true;
-            string isRead = edge.read ? " read" : "";
-            writefln("%s%2d-%2d: (cap: %s, flow: %d)%s", ' '.repeat(indent), source, target, edge.capacity, flow.flow[edge.cid], isRead);
-            printFlow(flow, target, seen, indent + 2);
-        }
-    }
-
-}
-
 // test with duplicates read
 unittest
 {
@@ -170,8 +159,11 @@ unittest
     foreach (i, ref read; reads)
         read.id = i;
     auto opt = maxFlowOpt(reads, 2);
-    writeln(opt.tOpt);
-    printFlow(opt.flow, -1, [-2: true]);
+    //writeln(opt.tOpt);
+    //printFlow(opt.flow, -1, [-2: true]);
+    auto file = File("test.dot", "w");
+    //file = stdout;
+    printGraph(opt.flow.g, opt.flow, file);
     const(Read)*[] pruned = opt.flow.prune;
     import std.algorithm: map, equal;
     pruned.map!`*a`.writeln;
@@ -179,6 +171,7 @@ unittest
 
 // TODO: graph doesn't allow duplicate edges
 // -> allow multiple edges for the same graph
+version(none)
 unittest
 {
     auto reads = [Read(0, 10), Read(0, 11),
@@ -204,6 +197,7 @@ unittest
                   //Read(0, 25), Read(26, 50)];
 // 3, tOpt = 1, no pruning
 
+version(none)
 unittest
 {
     auto reads = [Read(0, 8), Read(0, 2), Read(1, 3), Read(1, 10),
