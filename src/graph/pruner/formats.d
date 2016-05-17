@@ -2,6 +2,7 @@ module pruner.formats;
 
 alias edge_t = int;
 
+// TODO: maybe better to use a class?
 struct Read
 {
     //uint chr; not needed atm
@@ -15,7 +16,7 @@ struct Read
     @disable this(this);
 }
 
-bool equals()(auto ref const(Read)* a[], auto ref Read[] b)
+bool equals()(auto ref const(Read)*[] a, auto ref Read[] b)
 {
     import std.range: empty, front, popFront;
     while (!a.empty)
