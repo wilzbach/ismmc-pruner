@@ -55,6 +55,8 @@ data:
 	mkdir -p $@
 progs:
 	mkdir -p $@
+debug:
+	mkdir -p $@
 
 PLATFORM:=$(shell uname -m)
 
@@ -287,19 +289,19 @@ build/pruner_test: | build
 	mkdir -p $@
 
 # create object files
-$(PRUNER_BUILDDIR)/%.o : $(PRUNER_SOURCE_DIR)/%.d | $(DCC)
-	$(DCC) $(DCFLAGS) $(DCFLAGS_LINK) $(PRUNERFLAGS_IMPORT) -c $< -of$@
+$(PRUNER_BUILDDIR)/pruner.o : $(PRUNER_SOURCES) | $(DCC)
+	$(DCC) -c -debug -g -w -vcolumns -of$@ $^
 
-progs/pruner: $(PRUNER_OBJECTS) | $(DCC)
-	$(DCC) $^ -of$@
+progs/pruner: $(PRUNER_BUILDDIR)/pruner.o | $(DCC)
+	$(DCC) -g -of$@ $^
 
 ################################################################################
 # D part: test (one-step)
 ################################################################################
 
 # create object files for unittest
-$(PRUNER_TESTDIR)/bin: $(PRUNER_SOURCES) | $(DCC) $(PRUNER_TESTDIR)
-	$(DCC) -unittest $^ -of$@ -g
+$(PRUNER_TESTDIR)/bin: $(PRUNER_SOURCES) | $(DCC) $(PRUNER_TESTDIR) debug
+	$(DCC) -unittest $^ -of$@ -g -vcolumns
 
 test: $(PRUNER_TESTDIR)/bin
 	$<
