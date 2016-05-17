@@ -153,7 +153,7 @@ void printFlow(MaxFlow!DGraph flow, edge_t source, bool[size_t] seen, size_t ind
         {
             seen[edge.cid] = true;
             string isRead = edge.read ? " read" : "";
-            writefln("%s%2d-%2d: %s (flow: %d)%s", ' '.repeat(indent), source, target, edge.capacity, flow.flow[edge.cid], isRead);
+            writefln("%s%2d-%2d: (cap: %s, flow: %d)%s", ' '.repeat(indent), source, target, edge.capacity, flow.flow[edge.cid], isRead);
             printFlow(flow, target, seen, indent + 2);
         }
     }
