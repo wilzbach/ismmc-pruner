@@ -3,8 +3,6 @@ module pruner.graph;
 import pruner.formats;
 import std.stdio;
 
-alias edge_t = int;
-
 class TailEdge
 {
     edge_t capacity, cid, reverse_cid;

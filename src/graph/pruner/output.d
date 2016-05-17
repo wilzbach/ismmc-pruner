@@ -1,6 +1,7 @@
 module pruner.output;
 
 import pruner.graph;
+import pruner.formats;
 import std.stdio;
 
 void printFlow(MaxFlow!DGraph flow, edge_t source, bool[size_t] seen, size_t indent = 0)
