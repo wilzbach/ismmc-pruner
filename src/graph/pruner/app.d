@@ -95,7 +95,6 @@ public:
         {
             auto m = (l + r) / 2;
             // maxFlow with k=maxReadsPerPos,t=m
-            writeln("binarySearch", m);
             updateBackbone(m, maxReadsPerPos);
             auto lastFlow = g.maxFlow(superSource, superSink);
 
@@ -114,6 +113,7 @@ public:
                 lastValidK = m;
             }
         }
+        // TODO: reruns the flow for the last valid k to update the graph (correct capacity)
         version (unittest)
             updateBackbone(lastValidK, maxReadsPerPos);
         return tuple!("tOpt", "flow")(lastValidK, lastValidFlow.flow);
@@ -159,13 +159,14 @@ unittest
     foreach (i, ref read; reads)
         read.id = i;
     auto opt = maxFlowOpt(reads, 2);
-    //writeln(opt.tOpt);
+    assert(opt.tOpt == 1);
+
     //printFlow(opt.flow, -1, [-2: true]);
-    auto file = File("test.dot", "w");
-    //file = stdout;
-    printGraph(opt.flow.g, opt.flow, file);
+    printGraph(opt.flow.g, opt.flow, File("test.eps", "w"));
+
     const(Read)*[] pruned = opt.flow.prune;
     import std.algorithm: map, equal;
+    // print what's pruned
     pruned.map!`*a`.writeln;
 }
 

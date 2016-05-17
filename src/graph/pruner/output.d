@@ -26,7 +26,7 @@ string uniqueTempPath()
     return buildPath(tempDir(), randomUUID().toString());
 }
 
-void printGraph(DGraph graph, MaxFlow!DGraph flow, File fileFoo)
+void printGraph(DGraph graph, MaxFlow!DGraph flow, File output)
 {
     import std.process;
     import std.format: format;
@@ -70,8 +70,7 @@ void printGraph(DGraph graph, MaxFlow!DGraph flow, File fileFoo)
     if (wait(pipes.pid) != 0)
         writeln("Compilation failed!");
 
-    // TODO: write the file to stdout
-    auto epsFile = File("test.eps", "w");
+    // TODO: write directly to this file
     foreach (line; pipes.stdout.byLine)
-        epsFile.writeln(line);
+        output.writeln(line);
 }
