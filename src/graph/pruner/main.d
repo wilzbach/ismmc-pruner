@@ -66,7 +66,7 @@ auto getReads(File fileIn)
         // chr, start, stop, id
         auto cread = line.splitter('\t').map!(to!uint);
         cread.dropOne;
-        auto r = Read(cread.dropOne.front, cread.dropOne.front, cread.dropOne.front);
+        auto r = new Read(cread.dropOne.front, cread.dropOne.front, cread.dropOne.front);
         // read is not-copyable, but moveable
          ++reads.length;
         move(r, reads[$-1]);
@@ -87,7 +87,7 @@ unittest
 /**
 Serializes the reads to a text format
 */
-void outputReads(const(Read)*[] reads, File outFile)
+void outputReads(const(Read)[] reads, File outFile)
 {
     foreach (const ref r; reads)
         outFile.writeln(r.id);
@@ -100,9 +100,9 @@ unittest
     import std.range: array;
 
     const(Read)[] reads = [Read(10, 20, 0), Read(20, 30, 1), Read(30, 40, 3)];
-    const(Read)*[] constReads;
+    const(Read)[] constReads;
     foreach (ref r; reads)
-        constReads ~= &r;
+        constReads ~= r;
     auto p = pipe();
 
     outputReads(constReads, p.writeEnd);
