@@ -260,7 +260,7 @@ unittest
   import std.conv;
   auto reads_base = [Read(0, 51), Read(50, 101), Read(100, 151), Read(150, 201)];
 
-  foreach (int n_extra ; [5, 10, 15]) {
+  foreach (int n_extra ; [30]) {
     auto reads = reads_base;
     
     foreach (int left; [2, 52, 102, 152]){
