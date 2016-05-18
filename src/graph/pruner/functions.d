@@ -7,7 +7,7 @@ struct CovTuple
 {
     int index;
     int cov;
-    const(Read)* read;
+    Read read;
 
     string toString()
     {
@@ -28,10 +28,10 @@ auto accumulateCov(Read[] reads)
 
     // TODO: use a heap
     CovTuple[] positions;
-    foreach (ref read; reads)
+    foreach (read; reads)
     {
         // + 0 works around the fact that a.start is immutable
-        positions ~= CovTuple(read.start + 0, 1, &read);
+        positions ~= CovTuple(read.start + 0, 1, read);
         positions ~= CovTuple(read.end + 0, -1, null);
     }
 
@@ -73,7 +73,7 @@ auto breakPoints(Read[] reads)
     struct BreakPoint
     {
         AccumulateReads acc;
-        const(Read)* _front;
+        Read _front;
 
         this(AccumulateReads acc)
         {
@@ -109,7 +109,7 @@ auto breakPoints(Read[] reads)
                 }
             }
         }
-        @property const(Read)* front()
+        @property Read front()
         {
             return _front;
         }
@@ -162,7 +162,7 @@ unittest
 
     auto bPs = reads.breakPoints;
     ref firstComponent(){ return bPs.front; };
-    assert(*firstComponent.front == Read(0, 8));
+    assert(firstComponent.front == Read(0, 8));
     firstComponent.popFront();
     assert(firstComponent.empty);
 
@@ -170,7 +170,7 @@ unittest
     assert(!bPs.empty);
 
     ref secondComponent(){ return bPs.front; };
-    assert(*secondComponent.front == Read(10, 12));
+    assert(secondComponent.front == Read(10, 12));
 
     bPs.popFront();
     assert(bPs.empty);
@@ -185,7 +185,7 @@ unittest
     // manual loop
     while (!bPs.front.empty)
     {
-        assert(*bPs.front.front == reads[c++]);
+        assert(bPs.front.front == reads[c++]);
         bPs.front.popFront();
     }
     assert(c == 3);

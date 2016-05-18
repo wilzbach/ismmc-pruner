@@ -3,7 +3,7 @@ module pruner.formats;
 alias edge_t = int;
 
 // TODO: maybe better to use a class?
-struct Read
+class Read
 {
     //uint chr; not needed atm
 
@@ -12,39 +12,33 @@ struct Read
     immutable uint end;
     size_t id;
 
-    // prevent accidental copies
-    // TODO: this makes it a non-copyable type, however it is a pain to work with
-    // because most algorithms do automatic copies
-    //@disable this(this);
-}
-
-// TODO: if we would be able to do copies, this should be easier
-bool equals(const(Read)*[] a, Read[] b)
-{
-    import std.range: empty, front, popFront;
-    while (!a.empty)
+    this(uint start, uint end, size_t id = 0)
     {
-        if (b.empty) return false;
-        if (*a.front != b.front) return false;
-        a.popFront;
-        b.popFront;
+        this.start = start;
+        this.end = end;
+        this.id = id;
     }
-    if (!b.empty) return false;
-    return true;
+
+    static Read opCall(uint start, uint end, size_t id = 0)
+    {
+        return new Read(start, end, id);
+    }
+
+    override bool opEquals(Object o) const
+    {
+        if (auto r = cast(Read) o)
+            return start == r.start && end == r.end && id == r.id;
+        return false;
+    }
+
+    override string toString() const
+    {
+        import std.format: format;
+        return format("(s: %d, t: %d, id: %d)", start, end, id);
+    }
 }
 
-unittest
-{
-    auto reads = [Read(0, 8), Read(0, 2), Read(1, 10)];
-
-    const(Read)*[] constReads = [&reads[0], &reads[2]];
-    assert(!constReads.equals(reads));
-
-    const(Read)*[] constReadsEqual = [&reads[0], &reads[1], &reads[2]];
-    assert(constReadsEqual.equals(reads));
-}
-
-bool contains()(const(Read)*[] reads, auto ref Read r)
+bool contains()(const(Read)[] reads, const Read r)
 {
     foreach (read; reads)
         if (read.start == r.start && read.end == r.end)
@@ -56,7 +50,7 @@ bool contains()(const(Read)*[] reads, auto ref Read r)
 unittest
 {
     auto reads = [Read(0, 8), Read(0, 2), Read(1, 3), Read(1, 10)];
-    const(Read)*[] constReads = [&reads[0], &reads[2]];
+    const(Read)[] constReads = [reads[0], reads[2]];
     assert(constReads.contains(reads[0]));
     assert(!constReads.contains(reads[1]));
 

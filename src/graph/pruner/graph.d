@@ -7,9 +7,9 @@ import std.experimental.logger;
 class TailEdge
 {
     edge_t capacity, cid, reverse_cid;
-    const(Read)* read;
+    const(Read) read;
 
-    this(edge_t capacity, edge_t cid, edge_t reverse_cid, const(Read)* read = null)
+    this(edge_t capacity, edge_t cid, edge_t reverse_cid, const(Read) read = null)
     {
         this.capacity = capacity;
         this.cid = cid;
@@ -51,7 +51,7 @@ class Graph(bool directed = true)
         return addEdge(tail, head, 0);
     }
 
-    TailEdge addEdge(edge_t tail, edge_t head, edge_t capacity, const(Read)* read = null)
+    TailEdge addEdge(edge_t tail, edge_t head, edge_t capacity, const(Read) read = null)
     {
         auto e = new TailEdge(capacity, cid, cid + 1, read);
         g[tail][head]  ~= e;

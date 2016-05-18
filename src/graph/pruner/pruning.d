@@ -4,14 +4,14 @@ import pruner.app;
 import pruner.formats;
 import std.experimental.logger;
 
-const(Read)*[] maxFlowPruning(R)(R reads, edge_t maxReadsPerPos)
+const(Read)[] maxFlowPruning(R)(R reads, edge_t maxReadsPerPos)
 {
-    const(Read)*[] prunes;
+    const(Read)[] prunes;
     import pruner.functions: breakPoints;
     auto b = breakPoints(reads);
     while (!b.empty)
     {
-        auto opt = maxFlowOpt(b.front, maxReadsPerPos);
+        auto opt = maxFlowOptByRef(b.front, maxReadsPerPos);
         info("opt calcualted");
         // TODO: make lazy
         prunes ~= prune(opt.flow);
