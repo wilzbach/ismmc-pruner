@@ -24,26 +24,35 @@ private:
     TailEdge superSourceEdge, superSinkEdge;
 
 public:
-    this(R)(R reads)
+    this(R)(auto ref R reads)
     {
         g = new DGraph();
-        getPositions(reads);
-        addBackbone();
 
         // add read intervals
-        foreach (ref read; reads)
-            g.addEdge(read.start, read.end, readIntervalCapacity, &read);
-    }
-
-    void getPositions(R)(R reads)
-    {
-        foreach (ref read; reads)
+        // foreach not possible due to non-copyable?
+        while (!reads.empty)
         {
+            import std.traits: isPointer;
+            static if (isPointer!(typeof(reads.front)))
+                g.addEdge(reads.front.start, reads.front.end, readIntervalCapacity, reads.front);
+            else
+                g.addEdge(reads.front.start, reads.front.end, readIntervalCapacity, &reads.front);
+
             // + 0 works around the fact that a.start is immutable
-            positions ~= read.start + 0;
-            positions ~= read.end + 0;
+            positions ~= reads.front.start + 0;
+            positions ~= reads.front.end + 0;
+
+            reads.popFront();
         }
 
+        getPositions(reads);
+        addBackbone();
+    }
+
+    void getPositions(R)(auto ref R reads)
+    {
+        // we can do only _one_ loop (moved to main loop)
+        info("positions", positions);
         positions = positions.sort().release.uniq.array;
         superSink = positions[$-1] + 1;
     }
@@ -126,7 +135,12 @@ public:
 
 auto maxFlowOpt(R)(R reads, edge_t maxReadsPerPos)
 {
-    infof("running maxFlow with %d reads", reads.length);
+    return maxFlowOptByRef(reads, maxReadsPerPos);
+}
+
+auto maxFlowOpt(R)(ref R reads, edge_t maxReadsPerPos)
+{
+    //infof("running maxFlow with %d reads", reads.length);
     auto m = MaxFlowOpt(reads);
     auto r = m.binarySearch(maxReadsPerPos);
     infof("tOpt: %d", r.tOpt);
@@ -181,16 +195,12 @@ unittest
     printGraph(opt.flow.g, opt.flow, File("debug/paper_first_example.eps", "w"));
 
     const(Read)*[] pruned = opt.flow.prune;
-    // print what's pruned
-    //pruned.map!`*a`.writeln;
 
     // TODO: Obs that the algorithm currently delete more than strictly needed.
     assert(pruned.equals([
                     Read(6, 11, 4),
-                    Read(12, 17, 6),
                     Read(12, 17, 7),
-                    Read(0, 5, 1),
-                    Read(0, 5, 0)]));
+                    Read(0, 5, 1)]));
 
     // A more ambitious implementation would satisfy those, including len==3 
     assert(! contains(pruned, Read(0,7)));
@@ -218,9 +228,9 @@ unittest
     assert(opt.tOpt == 1);
 
     const(Read)*[] pruned = opt.flow.prune;
-    assert(pruned.equals([Read(0, 11, 1),
-                          Read(20, 31, 3),
-                          Read(40, 50, 4)]));
+
+    assert(pruned.equals([Read(0, 10, 0),
+                          Read(20, 31, 3)]));
     writeln("Test 2 OK");
 }
 

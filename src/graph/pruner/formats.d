@@ -44,10 +44,10 @@ unittest
     assert(constReadsEqual.equals(reads));
 }
 
-bool contains(const(Read)*[] reads, ref Read r)
+bool contains()(const(Read)*[] reads, auto ref Read r)
 {
     foreach (read; reads)
-        if ((*read).start == r.start && (*read).end == r.end)
+        if (read.start == r.start && read.end == r.end)
             return true;
 
     return false;
@@ -59,4 +59,7 @@ unittest
     const(Read)*[] constReads = [&reads[0], &reads[2]];
     assert(constReads.contains(reads[0]));
     assert(!constReads.contains(reads[1]));
+
+    assert(constReads.contains(Read(0, 8)));
+    assert(!constReads.contains(Read(0, 9)));
 }
