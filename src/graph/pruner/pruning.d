@@ -4,27 +4,35 @@ import pruner.app;
 import pruner.formats;
 import std.experimental.logger;
 
-const(Read)[] maxFlowPruning(R)(R reads, edge_t maxReadsPerPos)
+auto maxFlowPruning(R)(R reads, edge_t maxReadsPerPos)
 {
-    const(Read)[] prunes;
     import pruner.functions: breakPoints;
+    import std.concurrency: Generator, yield;
     auto b = breakPoints(reads);
-    while (!b.empty)
+
+    // async, lazy range with Fibers
+    return new Generator!(const(Read)[])(
     {
-        auto opt = maxFlowOptByRef(b.front, maxReadsPerPos);
-        info("opt calcualted");
-        // TODO: make lazy
-        prunes ~= prune(opt.flow);
-        info("pruning done");
-        // TODO: we should be able to save a range
-        //b.popFront();
-    }
-    return prunes;
+        while (!b.empty)
+        {
+            info("FRONT", b.front.front);
+            // TODO: we should be able to save a range
+            auto opt = maxFlowOptByRef(b.front, maxReadsPerPos);
+            yield(prune(opt.flow));
+            b.popFront();
+        }
+    });
 }
 
 unittest
 {
-    auto reads = [Read(0, 8), Read(4, 11), Read(10, 12)];
+    auto reads = [Read(0, 8), Read(0, 2), Read(1, 3), Read(1, 10),
+                  Read(2, 6), Read(4, 10), Read(20, 30)];
     auto p = maxFlowPruning(reads, 3);
-    info("prunes", p.length);
+    assert(p.front == [Read(2, 6), Read(1, 3)]);
+    p.popFront;
+    assert(!p.empty);
+    assert(p.front == []);
+    p.popFront;
+    assert(p.empty);
 }
