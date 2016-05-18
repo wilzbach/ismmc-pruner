@@ -1,6 +1,7 @@
 module pruner.functions;
 
 import pruner.formats;
+import std.experimental.logger;
 
 // doesn't work anymore due to postblit-disabled Read
 
@@ -41,4 +42,13 @@ unittest
     auto reads = [Read(0, 8), Read(10, 12)];
     assert(reads.accumulateCov.maxPos.front.cov == 1);
     assert(reads.accumulateCov.minPos.front.cov == 0);
+}
+
+auto breakPoints(Read[] reads)
+{
+    auto accumulatedCov = reads.accumulateCov;
+    while (!accumulatedCov.empty)
+    {
+        info("foo");
+    }
 }
