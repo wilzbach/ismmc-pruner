@@ -12,8 +12,7 @@ DCC=/usr/bin/dmd
 
 chromosomeURL="ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCA_000001405.15_GRCh38/GCA_000001405.15_GRCh38_assembly_structure/Primary_Assembly/assembled_chromosomes/FASTA/chr1.fna.gz"
 
-cutoff=1000000
-#cutoff=248956422
+cutoff=248956422
 read_size=5000
 #TODO: update
 # bash only supports integers
@@ -290,7 +289,7 @@ build/pruner_test: | build
 
 # create object files
 $(PRUNER_BUILDDIR)/pruner.o : $(PRUNER_SOURCES) | $(DCC)
-	$(DCC) -c -debug -g -w -vcolumns -of$@ $^
+	$(DCC) -c -debug -g -w -vcolumns -profile -of$@ $^
 
 progs/pruner: $(PRUNER_BUILDDIR)/pruner.o | $(DCC)
 	$(DCC) -g -of$@ $^
@@ -406,22 +405,23 @@ data/pruning.bam.plain: $(chr_mut).samsorted.bam | progs/pruner_in
 	$| $< > $@
 
 data/pruning.bam.ids: data/pruning.bam.plain progs/pruner
-	cat $< | $(word 2, $^) > $@
+	cat $< | $(word 2, $^) --max-coverage 3 > $@
 
 data/pruning.bam.filtered: $(chr_mut).samsorted.bam data/pruning.bam.ids | progs/pruner_out
 	cat $(word 2, $^) | $| $< $@ > /dev/null
 
 ################################################################################
 # Step 7 - Find haplotypes (pruned, normal)
+# TODO: run whatshap properly in a local installation
 ################################################################################
 
 data/haplotypes.normal.vcf data/haplotypes.normal.log: hp.normal.im
 hp.normal.im: $(chr_mut).gvcf $(chr_mut).samsorted.bam | $(WHATSHAP)
-	$(PYTHON) $(WHATSHAP) $^ -o data/haplotypes.normal.vcf 2> data/haplotypes.normal.log
+	$(WHATSHAP) $^ -o data/haplotypes.normal.vcf 2> data/haplotypes.normal.log
 
 data/haplotypes.pruned.vcf data/haplotypes.pruned.log: hp.pruned.im
 hp.pruned.im: $(chr_mut).gvcf data/pruning.bam.filtered.bai | $(WHATSHAP)
-	$(PYTHON) $(WHATSHAP) $< $(subst .bai,,$(word 2,$^)) -o data/haplotypes.pruned.vcf 2>  data/haplotypes.pruned.log
+	$(WHATSHAP) $< $(subst .bai,,$(word 2,$^)) -o data/haplotypes.pruned.vcf 2>  data/haplotypes.pruned.log
 
 .INTERMEDIATE: hp.normal.im hp.pruned.im
 
