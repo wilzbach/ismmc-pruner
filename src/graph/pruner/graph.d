@@ -2,6 +2,7 @@ module pruner.graph;
 
 import pruner.formats;
 import std.stdio;
+import std.experimental.logger;
 
 class TailEdge
 {
@@ -153,37 +154,96 @@ struct MaxFlow(Graph)
         }
     }
 
-    Path findPath(edge_t source, edge_t sink, Path path = [])
+    // performance hack
+    struct PathWithMap
     {
-        if (source == sink)
-            return path;
-        foreach (target, edge; g.getEdgePairs(source))
+        private Path _path;
+        private bool[edge_t] pathMap;
+
+        @property ref Path path()()
         {
-            edge_t residual = edge.capacity - flow[edge.cid];
-            if (residual > 0 && !path.canFind(edge))
+            return _path;
+        }
+
+        void addEdge(ref TailEdge edge)
+        {
+            _path ~= edge;
+            pathMap[edge.cid] = true;
+        }
+
+        void removeLast()
+        {
+            import std.range: empty, dropBackOne;
+            if (!_path.empty)
             {
-                auto result = findPath(target, sink, path ~ [edge]);
-                if (result !is null)
-                {
-                    return result;
-                }
+                pathMap.remove(path[$-1].cid);
+                // TODO: What's the proper way to avoid that the slice is copied?
+                _path = _path.dropBackOne();
             }
         }
-        return null;
+
+        bool* hasEdge(ref TailEdge edge)
+        {
+            return edge.cid in pathMap;
+        }
     }
 
+    ref Path findPath(edge_t source, edge_t sink)
+    {
+        PathWithMap p;
+        p.path.reserve(100);
+        findPath(source, sink, p);
+        return p.path;
+    }
+
+    bool findPath(edge_t source, edge_t sink, ref PathWithMap path)
+    {
+        if (source == sink)
+            return true;
+        // iterate over all edges of the source
+        foreach (target, edge; g.getEdgePairs(source))
+        {
+            // remaining possible flow
+            edge_t residual = edge.capacity - flow[edge.cid];
+            if (residual > 0 && !path.hasEdge(edge))
+            {
+                path.addEdge(edge);
+                auto result = findPath(target, sink, path);
+                if (result)
+                    return true;
+                else
+                    path.removeLast();
+            }
+        }
+        return false;
+    }
+
+    // this function is critical and thus optimized
     edge_t maxFlow(edge_t source, edge_t sink)
     {
-        auto path = findPath(source, sink);
-        while (path != null)
+        import std.experimental.logger;
+        PathWithMap p;
+        if(!findPath(source, sink, p))
         {
-            auto flow = path.map!((x) => x.capacity - flow[x.cid]).minPos.front;
-            foreach (edge; path)
+            error("couldn't find a valid path between source and sink");
+            return 0;
+        }
+
+        //infof("Path: %s", p);
+        for (;;)
+        {
+            // TODO: make native loop
+            auto flow = p.path.map!((x) => x.capacity - flow[x.cid]).minPos.front;
+            // TODO: this is expensive
+            foreach (edge; p.path)
             {
                 this.flow[edge.cid] += flow;
                 this.flow[edge.reverse_cid] -= flow;
             }
-            path = findPath(source, sink);
+            //info("Updating edges completed", flow);
+            p = PathWithMap.init;
+            if (!findPath(source, sink, p))
+                break;
         }
         return g.getEdgeTails(source).map!((x) => flow[x.cid]).sum;
     }
@@ -196,12 +256,12 @@ unittest
     DGraph g = new DGraph();
     auto edges = [[0, 2], [0, 1], [1, 3]];
     foreach (edge; edges)
-        g.addEdge(edge[0], edge[1], 3);
+        g.addEdge(edge[0], edge[1], 10);
 
     auto m = new MaxFlow!DGraph(g);
     // TODO: tail edge format is quite hard to read & debug -> remove
-    assert(m.findPath(0, 2) == [new TailEdge(3, 0, 1)]);
-    assert(m.findPath(0, 3) == [new TailEdge(3, 2, 3), new TailEdge(3, 4, 5)]);
+    assert(m.findPath(0, 2) == [new TailEdge(10, 0, 1)]);
+    assert(m.findPath(0, 3) == [new TailEdge(10, 2, 3), new TailEdge(10, 4, 5)]);
 }
 
 auto maxFlow(Graph)(auto ref Graph g, edge_t source, edge_t sink)

@@ -4,6 +4,7 @@ import std.stdio;
 import pruner.formats;
 import pruner.graph;
 import pruner.output;
+import std.experimental.logger;
 
 struct MaxFlowOpt
 {
@@ -97,7 +98,9 @@ public:
             auto m = (l + r) / 2;
             // maxFlow with k=maxReadsPerPos,t=m
             updateBackbone(m, maxReadsPerPos);
+            infof("updating backbone with k=%d", m);
             auto lastFlow = g.maxFlow(superSource, superSink);
+            infof("flow result: %d", lastFlow.max);
 
             // 0 = can't satisfy -> go to left
             // iff max-flow is exactly k
@@ -123,8 +126,11 @@ public:
 
 auto maxFlowOpt(R)(R reads, edge_t maxReadsPerPos)
 {
+    infof("running maxFlow with %d reads", reads.length);
     auto m = MaxFlowOpt(reads);
-    return m.binarySearch(maxReadsPerPos);
+    auto r = m.binarySearch(maxReadsPerPos);
+    infof("tOpt: %d", r.tOpt);
+    return r;
 }
 
 /**
@@ -159,6 +165,7 @@ unittest
                   Read(12, 17), Read(12, 17)];
     foreach (i, ref read; reads)
         read.id = i;
+
     auto opt = maxFlowOpt(reads, 2);
     assert(opt.tOpt == 1);
 
@@ -208,16 +215,13 @@ unittest
 {
     auto reads = [Read(0, 8), Read(0, 2), Read(1, 3), Read(1, 10),
                   Read(2, 6), Read(4, 10)];
-    foreach (i, ref read; reads)
-        read.id = i;
-
     auto opt = maxFlowOpt(reads, 3);
     assert(opt.tOpt == 2);
 
     const(Read)*[] pruned = opt.flow.prune;
     assert(pruned.length == 2);
 
-    assert(pruned.equals([Read(2, 6, 4), Read(1, 3, 2)]));
+    assert(pruned.equals([Read(2, 6), Read(1, 3)]));
 
     //assert(maxFlowOpt(reads, 3).max == 3);
     //assert(maxFlowOpt(reads, 6, 1) == 6);
@@ -226,3 +230,11 @@ unittest
     //assert(maxFlowOpt([], 3, 1) == 1);
     writeln("Test 3 OK");
 }
+
+//unittest
+//{
+    //auto reads = [Read(0, 8), Read(0, 2), Read(1, 3), Read(1, 10),
+                  //Read(2, 6), Read(4, 10)];
+    //auto opt = maxFlowOpt(reads, 3);
+
+//}
