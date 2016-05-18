@@ -156,6 +156,14 @@ const(Read)*[] prune(Flow)(Flow f)
     return pruned;
 }
 
+bool contains(const(Read)*[] reads, Read target ) {
+  foreach (read; reads) {
+    if (read.start == target.start && read.end == target.end) 
+      return true;
+  }
+  return false;
+}
+
 // test with duplicates read
 unittest
 {
@@ -184,10 +192,15 @@ unittest
                     Read(0, 5, 1),
                     Read(0, 5, 0)]));
 
-    // A more ambitious implementation would return the following (or equivalent):
-    //assert(pruned.equal!`*a == b`([Read(6, 11, 4),
-                                   //Read(12, 17, 7),
-                                   //Read(0, 5, 0)]));
+    // A more ambitious implementation would satisfy those, including len==3 
+    assert(! contains(pruned, Read(0,7)));
+    assert(! contains(pruned, Read(10,17)));
+    assert(  contains(pruned, Read(0,5)));
+    assert(  contains(pruned, Read(6,11)));
+    assert(  contains(pruned, Read(12,17)));
+    //assert(pruned.length == 3);
+ 
+    // assert(pruned.DontContain(Read(10,17));
     writeln("Test 1 OK");
 }
 
