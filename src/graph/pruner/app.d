@@ -28,6 +28,8 @@ public:
     {
         g = new DGraph();
 
+        assert(!reads.empty, "No reads given");
+
         // add read intervals
         // foreach not possible due to non-copyable?
         while (!reads.empty)

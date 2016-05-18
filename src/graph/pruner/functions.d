@@ -67,6 +67,7 @@ unittest
     assert(reads.accumulateCov.minElement!`a.cov`.cov == 0);
 }
 
+// TODO: refactor to use Fibers
 auto breakPoints(Read[] reads)
 {
     alias AccumulateReads = typeof(reads.accumulateCov);
@@ -142,12 +143,15 @@ auto breakPoints(Read[] reads)
 
         bool empty()
         {
-            return _front.acc.empty;
+            return _front.acc.empty && _front._front is null;
         }
 
         void popFront()
         {
-            assert(!empty);
+            // TODO: avoid popFront being called on empty range
+            // PROBLEM: BreakPoint empties the range
+            //assert(!empty);
+            _front._front = null;
             _front._init();
         }
     }
@@ -189,5 +193,7 @@ unittest
         bPs.front.popFront();
     }
     assert(c == 3);
+
+    bPs.popFront();
     assert(bPs.empty);
 }

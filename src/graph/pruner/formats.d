@@ -7,7 +7,8 @@ class Read
 {
     //uint chr; not needed atm
 
-// HACK/TODO: having an immutable(Read)[] is not allowed
+    // TODO: doubled security is probably unneeded
+    // passing around const objects should be enough
     immutable uint start;
     immutable uint end;
     size_t id;
