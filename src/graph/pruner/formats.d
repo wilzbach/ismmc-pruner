@@ -15,7 +15,7 @@ struct Read
     // prevent accidental copies
     // TODO: this makes it a non-copyable type, however it is a pain to work with
     // because most algorithms do automatic copies
-    @disable this(this);
+    //@disable this(this);
 }
 
 // TODO: if we would be able to do copies, this should be easier

@@ -254,10 +254,37 @@ unittest
     writeln("Test 3 OK");
 }
 
-//unittest
-//{
-    //auto reads = [Read(0, 8), Read(0, 2), Read(1, 3), Read(1, 10),
-                  //Read(2, 6), Read(4, 10)];
-    //auto opt = maxFlowOpt(reads, 3);
+unittest
+{
+  import std.random;
+  import std.conv;
+  auto reads_base = [Read(0, 51), Read(50, 101), Read(100, 151), Read(150, 201)];
 
-//}
+  foreach (int n_extra ; [5, 10, 15]) {
+    auto reads = reads_base;
+    
+    foreach (int left; [2, 52, 102, 152]){
+      int right = left + 47;
+      for (int i = 0; i < n_extra; i++) {
+        auto sp = uniform(left, right - 1);
+        auto ep = uniform(sp + 1, right);
+        reads = reads ~ Read(sp,ep);
+      } 
+    }
+    foreach (i, ref read; reads)
+      read.id = i;
+
+    auto opt = maxFlowOpt(reads, 3);
+
+    const(Read)*[] pruned = opt.flow.prune;
+
+    foreach (ref critical_read; reads_base) {
+      assert(! contains(pruned, 
+                        Read(critical_read.start, critical_read.end)));
+    }
+
+    writeln("Pruned " ~ to!string(pruned.length) ~ " out of" ~ to!string(reads.length));
+    writeln("OK\n");
+  }
+  writeln("Test 4 OK");
+}
