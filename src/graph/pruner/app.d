@@ -268,7 +268,7 @@ unittest
       for (int i = 0; i < n_extra; i++) {
         auto sp = uniform(left, right - 1);
         auto ep = uniform(sp + 1, right);
-        reads = reads ~ Read(sp,ep);
+        reads ~= Read(sp,ep);
       } 
     }
     foreach (i, ref read; reads)
@@ -283,7 +283,7 @@ unittest
                         Read(critical_read.start, critical_read.end)));
     }
 
-    writeln("Pruned " ~ to!string(pruned.length) ~ " out of" ~ to!string(reads.length));
+    writeln("Pruned ", pruned.length, " out of", reads.length);
     writeln("OK\n");
   }
   writeln("Test 4 OK");
