@@ -16,7 +16,7 @@ struct Read
     @disable this(this);
 }
 
-bool equals()(auto ref const(Read)*[] a, auto ref Read[] b)
+bool equals()(const(Read)*[] a, Read[] b)
 {
     import std.range: empty, front, popFront;
     while (!a.empty)
