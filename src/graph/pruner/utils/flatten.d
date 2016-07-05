@@ -1,4 +1,4 @@
-module pruner.flatten;
+module pruner.utils.flatten;
 import std.range;
 
 /**

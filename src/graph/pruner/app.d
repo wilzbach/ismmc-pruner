@@ -170,11 +170,8 @@ const(Read)[] prune(Flow)(Flow f)
 }
 
 bool contains(const(Read)[] reads, Read target ) {
-  foreach (read; reads) {
-    if (read.start == target.start && read.end == target.end)
-      return true;
-  }
-  return false;
+    import std.algorithm.searching : canFind;
+    return reads.canFind!((read) => read.start == target.start && read.end == target.end);
 }
 
 // test with duplicates read

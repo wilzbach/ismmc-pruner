@@ -1,4 +1,4 @@
-module pruner.accumulate;
+module pruner.utils.accumulate;
 
 // will be in Phobos 2.072
 

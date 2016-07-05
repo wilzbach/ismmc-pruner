@@ -1,4 +1,4 @@
-module pruner.algorithms;
+module pruner.utils.algorithms;
 
 import std.range;
 import std.traits;

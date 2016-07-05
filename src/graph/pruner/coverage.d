@@ -1,4 +1,4 @@
-module pruner.functions;
+module pruner.coverage;
 
 import pruner.formats;
 import std.experimental.logger;
@@ -24,7 +24,7 @@ auto accumulateCov(Read[] reads)
     import std.algorithm: sort, map;
     import std.range: array;
     import std.typecons: Tuple;
-    import pruner.accumulate;
+    import pruner.utils.accumulate;
 
     // TODO: use a heap
     CovTuple[] positions;
@@ -46,7 +46,7 @@ auto accumulateCov(Read[] reads)
 
 unittest
 {
-    import pruner.algorithms: maxElement;
+    import pruner.utils.algorithms: maxElement;
     auto reads = [Read(0, 8), Read(0, 2), Read(1, 3), Read(1, 10),
                   Read(2, 6), Read(4, 10)];
 
@@ -61,7 +61,7 @@ unittest
 
 unittest
 {
-    import pruner.algorithms;
+    import pruner.utils.algorithms;
     auto reads = [Read(0, 8), Read(10, 12)];
     assert(reads.accumulateCov.maxElement!`a.cov`.cov == 1);
     assert(reads.accumulateCov.minElement!`a.cov`.cov == 0);

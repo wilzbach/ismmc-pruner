@@ -1,4 +1,4 @@
-module pruner.random;
+module pruner.strategies.random;
 
 import pruner.formats;
 

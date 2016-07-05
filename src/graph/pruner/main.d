@@ -38,11 +38,11 @@ void main(string[] args)
     final switch (progs)
     {
         case Progs.maxflow:
-            import pruner.pruning: maxFlowPruning;
+            import pruner.strategies.pruning: maxFlowPruning;
             maxFlowPruning(reads, maxCoverage).outputReads(stdout);
             break;
         case Progs.random:
-            import pruner.random: randomPruning;
+            import pruner.strategies.random: randomPruning;
             randomPruning(reads).outputReads(stdout);
             break;
     }

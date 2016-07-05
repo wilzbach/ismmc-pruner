@@ -101,7 +101,7 @@ class Graph(bool directed = true)
     auto getEdgeTails(edge_t v)
     {
         import std.experimental.ndslice;
-        import pruner.flatten;
+        import pruner.utils.flatten;
         return g[v].values.flatten;
     }
 

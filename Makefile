@@ -10,7 +10,7 @@ DCC=/usr/bin/dmd
 # Dynamic variables
 ################################################################################
 
-chromosomeURL="ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCA_000001405.15_GRCh38/GCA_000001405.15_GRCh38_assembly_structure/Primary_Assembly/assembled_chromosomes/FASTA/chr1.fna.gz"
+chromosomeURL="ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCA_000001405.22_GRCh38.p7/GCA_000001405.22_GRCh38.p7_assembly_structure/Primary_Assembly/assembled_chromosomes/FASTA/chr1.fna.gz"
 
 cutoff=248956422
 read_size=5000
@@ -280,8 +280,11 @@ progs/pruner_out: src/bam/out.c | build/samtools-$(SAMTOOLS_VERSION) build/samto
 # D part: compile
 ################################################################################
 
+#rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
+rwildcard=$(wildcard $(addsuffix $2, $1)) $(foreach d,$(wildcard $(addsuffix *, $1)),$(call rwildcard,$d/,$2)) 
+
 PRUNERFLAGS_IMPORT = $(foreach dir,$(PRUNER_SOURCE_DIR), -I$(dir))
-PRUNER_SOURCES = $(wildcard $(PRUNER_SOURCE_DIR)/pruner/*.d)
+PRUNER_SOURCES = $(call rwildcard,$(PRUNER_SOURCE_DIR)/pruner/,*.d)
 PRUNER_OBJECTS = $(patsubst $(PRUNER_SOURCE_DIR)/%.d, $(PRUNER_BUILDDIR)/%.o, $(PRUNER_SOURCES))
 
 build/pruner_test: | build
@@ -289,6 +292,7 @@ build/pruner_test: | build
 
 # create object files
 $(PRUNER_BUILDDIR)/pruner.o : $(PRUNER_SOURCES) | $(DCC)
+	echo $(PRUNER_SOURCES)
 	$(DCC) -c -debug -g -w -vcolumns -profile -of$@ $^
 
 progs/pruner: $(PRUNER_BUILDDIR)/pruner.o | $(DCC)

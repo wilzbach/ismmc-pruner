@@ -1,4 +1,4 @@
-module pruner.pruning;
+module pruner.strategies.pruning;
 
 import pruner.app;
 import pruner.formats;
@@ -6,7 +6,7 @@ import std.experimental.logger;
 
 auto maxFlowPruning(R)(R reads, edge_t maxReadsPerPos)
 {
-    import pruner.functions: breakPoints;
+    import pruner.coverage: breakPoints;
     import std.concurrency: Generator, yield;
     auto b = breakPoints(reads);
 
