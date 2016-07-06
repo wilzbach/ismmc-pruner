@@ -7,12 +7,12 @@ build/picard-$(PICARD_VERSION): $(ANT) | build
 	curl -L https://github.com/broadinstitute/picard/archive/$(PICARD_VERSION).tar.gz \
 		| tar -zxf - -C $@ --strip-components=1
 
-build/picard-$(PICARD_VERSION)/picard.jar: build/picard-$(PICARD_VERSION)
-	$(ANT) -f $< -Dbasedir="$<" clone-htsjdk
-	$(ANT) -f $< -Dbasedir="$<"
+build/picard-$(PICARD_VERSION)/dist/picard.jar: build/picard-$(PICARD_VERSION) build/htsjdk-$(HTSJDK_VERSION)/build.xml
+	sed 's/name="htsjdk-classes" value="htsjdk/name="htsjdk-classes" value="$${htsjdk}/' -i $</build.xml
+	$(ANT) -f $< -Dbasedir="$<" -Dhtsjdk=../htsjdk-$(HTSJDK_VERSION)
 
-progs/picard.jar: build/picard-$(PICARD_VERSION)/picard.jar progs
-	cp $</picard.jar $@
+progs/picard.jar: build/picard-$(PICARD_VERSION)/dist/picard.jar progs
+	cp $< $@
 
 progs/picard: | progs/picard.jar
 	echo "#!/bin/bash" > $@

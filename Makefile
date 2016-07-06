@@ -53,7 +53,7 @@ PLATFORM:=$(shell uname -m)
 # - avoid breakage (fixed versions)
 # - independent from host system (nice for clusters with old distributions)
 # - compile once, run everywhere (static linking is used wherever possible)
-# - compile from source code wherever reasonable
+# - compile from source code and thus allow easy modification & patching
 # - sometimes binaries aren't even publicly available (e.g. GATK)
 ################################################################################
 
@@ -65,6 +65,10 @@ include pipeline/samtools.mk
 
 GATK_VERSION=3.5
 include pipeline/gatk.mk
+
+# required by picard (versions should be the same)
+HTSJDK_VERSION=2.2.2
+include pipeline/htsjdk.mk
 
 PICARD_VERSION=2.2.2
 include pipeline/picard.mk
@@ -102,7 +106,7 @@ include pipeline/mvn.mk
 ANT_VERSION=1.9.7
 include pipeline/ant.mk
 
-# needed for HTSJDK
+# needed for newer HTSJDK versions
 GRADLE_VERSION=2.14
 include pipeline/gradle.mk
 
@@ -121,12 +125,14 @@ include pipeline/python.mk
 # Pruner in & out
 ################################################################################
 
-# order matters
-progs/pruner_in: src/bam/in.c | build/samtools-$(SAMTOOLS_VERSION) build/samtools-$(SAMTOOLS_VERSION)/htslib-$(SAMTOOLS_VERSION)/libhts.a build/bam progs
+LIBHTS=build/samtools-$(SAMTOOLS_VERSION)/htslib-$(SAMTOOLS_VERSION)/libhts.a
+
+# order of libraries matters
+progs/pruner_in: src/bam/in.c | build/samtools-$(SAMTOOLS_VERSION) $(LIBHTS) build/bam progs
 	gcc -I$(word 1,$|)/htslib-$(SAMTOOLS_VERSION) -Ibuild \
 		-L $(word 1,$|)/htslib-$(SAMTOOLS_VERSION) $< -l:libhts.a -lz -pthread -o $@
 
-progs/pruner_out: src/bam/out.c | build/samtools-$(SAMTOOLS_VERSION) build/samtools-$(SAMTOOLS_VERSION)/htslib-$(SAMTOOLS_VERSION)/libhts.a build/bam progs
+progs/pruner_out: src/bam/out.c | build/samtools-$(SAMTOOLS_VERSION) $(LIBHTS) build/bam progs
 	gcc -I$(word 1,$|)/htslib-$(SAMTOOLS_VERSION) -Ibuild \
 		-L $(word 1,$|)/htslib-$(SAMTOOLS_VERSION) $< -l:libhts.a -lz -pthread -o $@
 
@@ -145,7 +151,6 @@ build/pruner_test: | build
 
 # create object files
 $(PRUNER_BUILDDIR)/pruner.o : $(PRUNER_SOURCES) | $(DCC)
-	echo $(PRUNER_SOURCES)
 	$(DCC) -c -debug -g -w -vcolumns -profile -of$@ $^
 
 progs/pruner: $(PRUNER_BUILDDIR)/pruner.o | $(DCC)
@@ -167,9 +172,10 @@ test: $(PRUNER_TESTDIR)/bin
 # Version 0.10 is broken :/
 ################################################################################
 
+WHATSHAP_VERSION=0.9
 WHATSHAP=$(PYTHON_SITE_PACKAGES)/whatshap
 $(WHATSHAP): | $(PIP)
-	$(PIP) install --upgrade --ignore-installed whatshap
+	$(PIP) install --upgrade --ignore-installed whatshap==$(WHATSHAP_VERSION)
 
 ################################################################################
 # Step 0) Pattern rules for suffixes
