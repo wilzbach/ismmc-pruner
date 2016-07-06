@@ -39,7 +39,9 @@ void main(string[] args)
     {
         case Progs.maxflow:
             import pruner.strategies.pruning: maxFlowPruning;
-            maxFlowPruning(reads, maxCoverage).outputReads(stdout);
+            // we may have multiple components
+            foreach (rs; maxFlowPruning(reads, maxCoverage))
+                rs.outputReads(stdout);
             break;
         case Progs.random:
             import pruner.strategies.random: randomPruning;
@@ -87,7 +89,7 @@ unittest
 /**
 Serializes the reads to a text format
 */
-void outputReads(const(Read)[] reads, File outFile)
+void outputReads(R)(R reads, File outFile)
 {
     foreach (const ref r; reads)
         outFile.writeln(r.id);

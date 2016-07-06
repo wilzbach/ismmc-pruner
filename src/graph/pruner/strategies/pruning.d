@@ -7,21 +7,31 @@ import std.experimental.logger;
 auto maxFlowPruning(R)(R reads, edge_t maxReadsPerPos)
 {
     import pruner.coverage: breakPoints;
-    import std.concurrency: Generator, yield;
-    auto b = breakPoints(reads);
-
-    // async, lazy range with Fibers
-    return new Generator!(const(Read)[])(
+    struct Gen
     {
-        while (!b.empty)
+        typeof(breakPoints(R.init)) b;
+
+        this(R reads)
         {
-            info("FRONT", b.front.front);
-            // TODO: we should be able to save a range
-            auto opt = maxFlowOptByRef(b.front, maxReadsPerPos);
-            yield(prune(opt.flow));
+            b = breakPoints(reads);
+        }
+
+        bool empty()
+        {
+            return b.empty;
+        }
+
+        const(Read)[] front()
+        {
+            return maxFlowOptByRef(b.front, maxReadsPerPos).flow.prune;
+        }
+
+        void popFront()
+        {
             b.popFront();
         }
-    });
+    }
+    return Gen(reads);
 }
 
 unittest
