@@ -9,7 +9,7 @@ progs/gatk.jar: build/gatk-protected-$(GATK_VERSION) $(MVN) | progs
 	sed 's/^import oracle.jrockit/\/\/import oracle.jrockit/' \
 		-i $</public/gatk-tools-public/src/main/java/org/broadinstitute/gatk/tools/walkers/varianteval/VariantEval.java
 	sed 's/<module>external-example<\/module>//' -i $</public/pom.xml
-	cd $< && $(MVN) verify -P\!queue
+	$(MVN) -f $< verify -P\!queue
 	cp $</target/GenomeAnalysisTK.jar $@
 
 progs/gatk: | progs/gatk.jar
@@ -17,3 +17,7 @@ progs/gatk: | progs/gatk.jar
 	echo 'DIR="$$( cd "$$( dirname "$${BASH_SOURCE[0]}" )" && pwd )"' >> $@
 	echo 'exec /usr/bin/java $$JVM_OPTS -jar "$$DIR/gatk.jar" "$$@"' >> $@
 	chmod +x $@
+
+# call haplotyper with any reference
+%.gvcf: $$(@D)/ref.fa %.samsorted.bam $$(@D)/ref.dict $$(@D)/ref.fa.fai | $(GATK)
+	$(GATK) -R $< -T HaplotypeCaller -I $(word 2,$^) -o $@

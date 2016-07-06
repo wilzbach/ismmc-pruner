@@ -33,3 +33,14 @@ progs/mason_variator: build/seqan-seqan-v$(SEQAN_VERSION)/build | progs
 progs/mason_simulator: | build/seqan-seqan-v$(SEQAN_VERSION)/build | progs
 	cd $< && make -j $(NPROCS) mason_simulator
 	cp $</bin/mason_simulator $@
+
+################################################################################
+# Mutate references into haplotypes
+# ---------------------------------
+#
+# mutate (SNPs, Indels, SVs)
+################################################################################
+
+%/mut.fa: $$*/ref.fa $$*/ref.fa.fai | $(MASON_VARIATOR)
+	$(MASON_VARIATOR) -ir $< -of $@ -ov $(*D).mut.vcf \
+		--out-breakpoints $@.tsv --num-haplotypes 2

@@ -1,0 +1,2 @@
+$(FOLDERS):
+	mkdir -p $@

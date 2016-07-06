@@ -13,8 +13,8 @@ build/python-$(PYTHON_VERSION): | build
 		tar -Jxf - -C $|
 	mv $|/Python-$(PYTHON_VERSION) $|/python-$(PYTHON_VERSION)
 
-build/python-$(PYTHON_VERSION)/local/bin/python3: | build/python-$(PYTHON_VERSION)
-	cd $< && ./configure --prefix=$</local && make -j $(NPROCS)
+build/python-$(PYTHON_VERSION)/local/bin/python3: build/python-$(PYTHON_VERSION)
+	cd $< && ./configure --prefix=$(shell pwd)/$</local && make -j $(NPROCS) && make install
 
 build/python-$(PYTHON_VERSION)/local/bin/pyvenv: build/python-$(PYTHON_VERSION)/local/bin/python3
 

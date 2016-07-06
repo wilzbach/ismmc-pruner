@@ -1,13 +1,11 @@
 PICARD=progs/picard
 
-# we can't assume that ant is available, hence download the binary for now
-
-build/picard-$(PICARD_VERSION): $(ANT) | build
+build/picard-$(PICARD_VERSION): | build
 	mkdir -p $@
 	curl -L https://github.com/broadinstitute/picard/archive/$(PICARD_VERSION).tar.gz \
 		| tar -zxf - -C $@ --strip-components=1
 
-build/picard-$(PICARD_VERSION)/dist/picard.jar: build/picard-$(PICARD_VERSION) build/htsjdk-$(HTSJDK_VERSION)/build.xml
+build/picard-$(PICARD_VERSION)/dist/picard.jar: build/picard-$(PICARD_VERSION) build/htsjdk-$(HTSJDK_VERSION)/build.xml $(ANT)
 	sed 's/name="htsjdk-classes" value="htsjdk/name="htsjdk-classes" value="$${htsjdk}/' -i $</build.xml
 	$(ANT) -f $< -Dbasedir="$<" -Dhtsjdk=../htsjdk-$(HTSJDK_VERSION)
 

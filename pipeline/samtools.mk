@@ -15,7 +15,7 @@ progs/samtools: build/samtools-$(SAMTOOLS_VERSION) | progs
 
 # static libhts.a
 build/samtools-$(SAMTOOLS_VERSION)/htslib-$(SAMTOOLS_VERSION)/libhts.a: build/samtools-$(SAMTOOLS_VERSION)
-	cd $</htslib-$(SAMTOOLS_VERSION) && make -j $(NPROCS) libhts.a
+	cd $</htslib-$(SAMTOOLS_VERSION) && make clean && make -j $(NPROCS) libhts.a
 
 # allow includes without a version number
 build/bam: build/samtools-$(SAMTOOLS_VERSION) | build
