@@ -3,8 +3,6 @@
 ################################################################################
 
 SHELL=/bin/bash
-DCFLAGS = -w
-DCC=/usr/bin/dmd
 
 ################################################################################
 # Dynamic variables
@@ -34,27 +32,15 @@ chr_mut=$(chr_ref)$(mut_suffix)
 
 ################################################################################
 # Pretasks
+# ---------
+# Setup folder and platform-specific variables
 ################################################################################
 
-NPROCS:=1
-OS:=$(shell uname -s)
-unneeded_var =
-ifeq ($(OS),Linux)
-	NPROCS:=$(shell grep -c ^processor /proc/cpuinfo)
-endif
-ifeq ($(OS),Darwin) # Assume Mac OS X
-	NPROCS:=$(shell system_profiler | awk '/Number Of CPUs/{print $4}{next;}')
-endif
+include pipeline/getprocs.mk
 
-build:
-	mkdir -p $@
-perm:
-	mkdir -p $@
-data:
-	mkdir -p $@
-progs:
-	mkdir -p $@
-debug:
+FOLDERS=build data debug perm progs
+
+$(FOLDERS):
 	mkdir -p $@
 
 PLATFORM:=$(shell uname -m)
@@ -62,210 +48,78 @@ PLATFORM:=$(shell uname -m)
 ################################################################################
 # PROGS
 # -----
+# Because having portable, versioned and modifiable progs is nice
 #
-# Because having portable progs is nice
+# - avoid breakage (fixed versions)
+# - independent from host system (nice for clusters with old distributions)
+# - compile once, run everywhere (static linking is used wherever possible)
+# - compile from source code wherever reasonable
+# - sometimes binaries aren't even publicly available (e.g. GATK)
 ################################################################################
 
-BWA=progs/bwa
 BWA_VERSION=0.7.13
+include pipeline/bwa.mk
 
-SAMTOOLS=progs/samtools
 SAMTOOLS_VERSION=1.3
+include pipeline/samtools.mk
 
-GATK=progs/gatk
 GATK_VERSION=3.5
+include pipeline/gatk.mk
 
-PICARD=progs/picard
 PICARD_VERSION=2.2.2
+include pipeline/picard.mk
 
-MASON_VARIATOR=progs/mason_variator
 SEQAN_VERSION=2.1.1
+include pipeline/seqan.mk
 
-WGSIM=progs/wgsim
+WGSIM_VERSION=a12da3375ff3b51a5594d4b6fa35591173ecc229
+include pipeline/wgsim.mk
 
-PBSIM=progs/pbsim
 PBSIM_VERSION=1.0.3
+include pipeline/pbsim.mk
+
+################################################################################
+# Build tools
+# -----------
+#
+# We don't want to fiddle with them, download as binaries
+################################################################################
 
 DMD_VERSION=2.071.0
+DCFLAGS = -w
+DCC=/usr/bin/dmd
+include pipeline/dmd.mk
 
-ifeq ($(wildcard $(DCC)),)
-	DCC=build/dmd2/linux/bin64/dmd
-endif
-
-build/dmd2: | build
-	curl -fSL --retry 3 "http://downloads.dlang.org/releases/2.x/$(DMD_VERSION)/dmd.$(DMD_VERSION).linux.tar.xz" | tar -Jxf - -C $|
-build/dmd2/linux/bin64/dmd: build/dmd2
-
-################################################################################
-# Python stuff
-################################################################################
-
-PYTHON_EXEC=python3
-PYTHON=build/python/bin/python3
-PIP=build/python/bin/pip3
-PYTHON_VERSION:=$(shell python3 --version | cut -f 2 -d ' ' | cut -f 1,2 -d .)
-PYTHON_FOLDER=build/python
-VIRTUALENV=/usr/bin/virtualenv
-
-# in cause no virtualenv is installed
-ifeq ($(wildcard $(VIRTUALENV)),)
-	VIRTUALENV=$(HOME)/.local/lib/python$(PYTHON_VERSION)/site-packages/virtualenv.py
-endif
-
-$(VIRTUALENV):
-	pip install --user --upgrade virtualenv
-
-$(PYTHON_FOLDER): | $(VIRTUALENV) build
-	virtualenv -p $(PYTHON_EXEC) build/python
-
-BIOPYTHON=$(PYTHON_FOLDER)/lib/python$(PYTHON_VERSION)/site-packages/Bio
-
-$(BIOPYTHON): | $(PYTHON_FOLDER) $(NUMPY)
-	@echo $(BIOPYTHON)
-	$(PIP) install --ignore-installed biopython
-
-$(NUMPY): | $(PYTHON_FOLDER)
-	$(PIP) install --ignore-installed numpy
-
-$(MATPLOTLIB): | $(PYTHON_FOLDER)
-	$(PIP) install --ignore-installed matplotlib
-
-#WHATSHAP=$(PYTHON_FOLDER)/bin/whatshap
-WHATSHAP=$(HOME)/.local/bin/whatshap
-#$(WHATSHAP): | $(PYTHON_FOLDER)
-	#$(PIP) install --upgrade --ignore-installed whatshap
-
-################################################################################
-# Build "build tools"
-################################################################################
-
+# needed for SeqAn
 CMAKE_VERSION=3.5.2
+include pipeline/cmake.mk
 
-# we need cmake3
-ifeq "$$(cmake -version | head -n 1 | cut -f 3 -d ' ' | cut -f 1 -d .)" "3"
-CMAKE=cmake
-else
-CMAKE=build/cmake-$(CMAKE_VERSION)-Linux-$(PLATFORM)/bin/cmake
-endif
+# needed for GATK
+MVN_VERSION=3.3.9
+include pipeline/mvn.mk
 
-CMAKE=build/cmake-$(CMAKE_VERSION)-Linux-$(PLATFORM)/bin/cmake
+# needed for Picard
+ANT_VERSION=1.9.7
+include pipeline/ant.mk
 
-# cmake version in space
-_cmake_version_sp= $(subst ., ,$(CMAKE_VERSION))
-
-build/cmake-$(CMAKE_VERSION)-Linux-$(PLATFORM): | build
-	curl -L http://www.cmake.org/files/v$(word 1, $(_cmake_version_sp)).$(word 2, $(_cmake_version_sp))/cmake-$(CMAKE_VERSION)-Linux-$(PLATFORM).tar.gz | gunzip - | tar -xf - -C $|
-
-$(CMAKE): | build/cmake-$(CMAKE_VERSION)-Linux-$(PLATFORM)
+# needed for HTSJDK
+GRADLE_VERSION=2.14
+include pipeline/gradle.mk
 
 ################################################################################
-# Bio tools
+# Python
 ################################################################################
 
-build/bwa-$(BWA_VERSION): | build
-	curl -L http://downloads.sourceforge.net/project/bio-bwa/bwa-$(BWA_VERSION).tar.bz2 \
-	| bzip2 -d | tar xf - -C $|
+PYTHON_VERSION=3.5.2
+BIOPYTHON_VERSION=1.67
+NUMPY_VERSION=1.11.1
+MATPLOTLIB_VERSION=1.5.1
 
-progs/bwa: | build/bwa-$(BWA_VERSION) progs
-	cd $(word 1,$|) && make -j $(NPROCS)
-	cp $(word 1,$|)/bwa $@
+include pipeline/python.mk
 
-# symlink is needed for include directories
-build/samtools-$(SAMTOOLS_VERSION): | build
-	curl -L https://github.com/samtools/samtools/releases/download/$(SAMTOOLS_VERSION)\
-	/samtools-$(SAMTOOLS_VERSION).tar.bz2 \
-	| bzip2 -d | tar xf - -C $|
-
-progs/samtools: | build/samtools-$(SAMTOOLS_VERSION) progs
-	cd $(word 1,$|) && \
-		sed -e 's|#!/usr/bin/env python|#!/usr/bin/env python2|' -i misc/varfilter.py
-	cd $(word 1,$|) && ./configure
-	cd $(word 1,$|) && make -j $(NPROCS)
-	cp $(word 1, $|)/samtools $@
-
-build/samtools-$(SAMTOOLS_VERSION)/htslib-$(SAMTOOLS_VERSION)/libhts.a: | build/samtools-$(SAMTOOLS_VERSION)
-	cd $</htslib-$(SAMTOOLS_VERSION) && make -j $(NPROCS) libhts.a
-
-build/bam: build/samtools-$(SAMTOOLS_VERSION) | build
-	ln -s ./samtools-$(SAMTOOLS_VERSION) $|/bam
-
-build/gatk-protected-$(GATK_VERSION): | build
-	curl -L https://github.com/broadgsa/gatk-protected/archive/$(GATK_VERSION).tar.gz | tar -zxf - -C $|
-
-progs/gatk.jar: | build/gatk-protected-$(GATK_VERSION) progs
-	sed 's/^import oracle.jrockit/\/\/import oracle.jrockit/' \
-		-i $(word 1,$|)/public/gatk-tools-public/src/main/java/org/broadinstitute/gatk/tools/walkers/varianteval/VariantEval.java
-	sed 's/<module>external-example<\/module>//' -i $(word 1,$|)/public/pom.xml
-	cd $(word 1,$|) && mvn verify -P\!queue
-	cp $(word 1,$|)/target/GenomeAnalysisTK.jar $@
-
-progs/gatk: | progs/gatk.jar
-	echo "#!/bin/bash" > $@
-	echo 'DIR="$$( cd "$$( dirname "$${BASH_SOURCE[0]}" )" && pwd )"' >> $@
-	echo 'exec /usr/bin/java $$JVM_OPTS -jar "$$DIR/gatk.jar" "$$@"' >> $@
-	chmod +x $@
-
-build/picard-tools-$(PICARD_VERSION): | build
-	wget https://github.com/broadinstitute/picard/releases/download/$(PICARD_VERSION)/picard-tools-$(PICARD_VERSION).zip -O $@.zip
-	unzip -d $| $@.zip
-	rm $@.zip
-
-progs/picard.jar: | build/picard-tools-$(PICARD_VERSION) progs
-	cp $(word 1,$|)/picard.jar $@
-
-progs/picard: progs/picard.jar | build/picard-tools-$(PICARD_VERSION)
-	echo "#!/bin/bash" > $@
-	echo 'DIR="$$( cd "$$( dirname "$${BASH_SOURCE[0]}" )" && pwd )"' >> $@
-	echo 'java $$JVM_OPTS -jar "$$DIR"/picard.jar "$$@"' >> $@
-	chmod +x $@
-
-build/seqan-seqan-v$(SEQAN_VERSION): | build
-	curl -L https://github.com/seqan/seqan/archive/seqan-v$(SEQAN_VERSION).tar.gz | gunzip - | tar -xf - -C $|
-
-# workaround to have multiline strings in a makefile
-define newline
-
-
-endef
-
-define SEQAN_PATCH
-SET(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
-SET(BUILD_SHARED_LIBRARIES OFF)
-SET(CMAKE_EXE_LINKER_FLAGS "-static")
-endef
-
-# Note: we make static build to increase portability
-build/seqan-seqan-v$(SEQAN_VERSION)/build: | build/seqan-seqan-v$(SEQAN_VERSION) $(CMAKE)
-	sed -e 's/find_package (OpenMP)/$(subst $(newline),\n,${SEQAN_PATCH})/' -i $(word 1, $|)/apps/mason2/CMakeLists.txt
-	mkdir -p $(word 1,$|)/build
-	CMAKE_EXE_LINKER_FLAGS="-static" $(CMAKE) \
-		-DCMAKE_BUILD_TYPE=Release \
-		-DSEQAN_NO_NATIVE=1 \
-		-static \
-		-B$@ \
-		-H$(word 1,$|)
-
-progs/mason_variator: | build/seqan-seqan-v$(SEQAN_VERSION)/build progs
-	cd $(word 1,$|) && make -j $(NPROCS) mason_variator
-	cp $(word 1,$|)/bin/mason_variator $@
-
-progs/mason_simulator: | build/seqan-seqan-v$(SEQAN_VERSION)/build progs
-	cd $(word 1,$|) && make -j $(NPROCS) mason_simulator
-	cp $(word 1,$|)/bin/mason_simulator $@
-
-build/wgsim-master: | build
-	curl -L https://github.com/lh3/wgsim/archive/master.tar.gz | tar -zxf - -C $|
-
-progs/wgsim: | build/wgsim-master
-	gcc -g -O2 -Wall -o $@ build/wgsim-master/wgsim.c -lz -lm
-
-build/pbsim-$(PBSIM_VERSION): | build
-	curl -L https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/pbsim/pbsim-$(PBSIM_VERSION).tar.gz | tar -zxf - -C $|
-
-progs/pbsim: | build/pbsim-$(PBSIM_VERSION)
-	cd $| && ./configure
-	cd $| && make -j $(NPROCS)
-	cp ./pbsim-$(PBSIM_VERSION)/src/pbsim $@
+################################################################################
+# Pruner in & out
+################################################################################
 
 # order matters
 progs/pruner_in: src/bam/in.c | build/samtools-$(SAMTOOLS_VERSION) build/samtools-$(SAMTOOLS_VERSION)/htslib-$(SAMTOOLS_VERSION)/libhts.a build/bam progs
@@ -280,8 +134,7 @@ progs/pruner_out: src/bam/out.c | build/samtools-$(SAMTOOLS_VERSION) build/samto
 # D part: compile
 ################################################################################
 
-#rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
-rwildcard=$(wildcard $(addsuffix $2, $1)) $(foreach d,$(wildcard $(addsuffix *, $1)),$(call rwildcard,$d/,$2)) 
+include pipeline/rwildcard.mk
 
 PRUNERFLAGS_IMPORT = $(foreach dir,$(PRUNER_SOURCE_DIR), -I$(dir))
 PRUNER_SOURCES = $(call rwildcard,$(PRUNER_SOURCE_DIR)/pruner/,*.d)
@@ -310,26 +163,19 @@ test: $(PRUNER_TESTDIR)/bin
 	$<
 
 ################################################################################
+# WhatsHap
+# Version 0.10 is broken :/
+################################################################################
+
+WHATSHAP=$(PYTHON_SITE_PACKAGES)/whatshap
+$(WHATSHAP): | $(PIP)
+	$(PIP) install --upgrade --ignore-installed whatshap
+
+################################################################################
 # Step 0) Pattern rules for suffixes
 # - Indexes are created on demand
 # - intermediate files will be removed on exit
 ################################################################################
-
-# sub-level: foo.fa.bwt
-%.bwt: % | $(BWA)
-	$(BWA) index $<
-
-# sub-level: foo.fa.fai
-%.fai: % | $(SAMTOOLS)
-	$(SAMTOOLS) faidx $<
-
-# sub-level: foo.fa.idx
-%.bai: % | $(SAMTOOLS)
-	$(SAMTOOLS) index $<
-
-# same level: foo.fa and foo.dict
-%.dict: %.fa | $(PICARD)
-	$(PICARD) CreateSequenceDictionary REFERENCE=$< OUTPUT=$@
 
 # aligns foo.bar.read1.fq + foo.bar.read2.fq to reference foo.fa
 #  - the first dot determines the name of the reference
@@ -340,19 +186,10 @@ test: $(PRUNER_TESTDIR)/bin
 	$(BWA) mem -t $(NPROCS) $(subst .bwt,,$<) $(word 2, $^) $(word 3, $^) \
 		-R "@RG\tID:$(chr_ref)\tPG:bwa\tSM:$(chr_ref)" > $@
 
-# each threads uses at least 800 MB (-m flag) - dont start too many!
-%.samsorted.bam: %.ali | $(SAMTOOLS)
-	$(SAMTOOLS) sort --threads 4 -o $@ $<
-	$(SAMTOOLS) index $@
-
 # Map variant from read to reference
 # - Sample dot pattern applies
 %.gvcf: $(chr_ref).fa.fai $(chr_ref).dict %.samsorted.bam | $(GATK)
 	$(GATK) -R $(subst .fai,,$<) -T HaplotypeCaller -I $(word 3,$^) -o $@
-
-# reads statistics
-%.samstats: % | $(SAMTOOLS)
-	$(SAMTOOLS) stats $< > $@
 
 ################################################################################
 # Step 1 - create reference & index it
