@@ -2,4 +2,4 @@
 
 # create reference "genome"
 %/ref.fa: perm/$$(*F).fa | $$(@D) $(BIOPYTHON)
-	$(PYTHON) src/cut.py $< -e $(CHR_CUTOFF)  > $@
+	$(PYTHON) src/scripts/cut.py $< -e $(CHR_CUTOFF)  > $@

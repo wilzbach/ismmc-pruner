@@ -29,8 +29,7 @@ $(PRUNER_TESTDIR)/bin: $(PRUNER_SOURCES) | $(DCC) $(PRUNER_TESTDIR) debug
 # I) We transform the BAM filter in a chr,start,stop,id format
 # II) We run the pruner - it outputs the pruned ids
 # III) We filter the BAM file based on the pruned ids
-#
-# III) expects that the ordered ids are sorted
+#  - expects that the ordered ids are sorted
 ################################################################################
 
 %.pruned.plain: %.samsorted.bam | progs/pruner_in

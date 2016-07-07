@@ -4,9 +4,9 @@ SHELL=/bin/bash
 ################################################################################
 
 #cutoff=248956422
-CHR_CUTOFF=10000000
-READ_SIZE=5000
-READ_COVERAGE=60
+CHR_CUTOFF=1000000
+READ_SIZE=20000
+READ_COVERAGE=10
 SNP_RATE=0.01
 
 FOLDERS=build data debug perm progs
@@ -18,7 +18,6 @@ FOLDERS=build data debug perm progs
 include pipeline/platform.mk
 
 DMD_VERSION=2.071.0
-DCFLAGS = -w
 DCC=/usr/bin/dmd
 include pipeline/dmd.mk
 
