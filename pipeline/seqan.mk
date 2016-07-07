@@ -42,5 +42,5 @@ progs/mason_simulator: | build/seqan-seqan-v$(SEQAN_VERSION)/build | progs
 ################################################################################
 
 %/mut.fa: $$*/ref.fa $$*/ref.fa.fai | $(MASON_VARIATOR)
-	$(MASON_VARIATOR) -ir $< -of $@ -ov $(*D).mut.vcf \
+	$(MASON_VARIATOR) --snp-rate $(SNP_RATE) -ir $< -of $@ -ov $*/mut.vcf \
 		--out-breakpoints $@.tsv --num-haplotypes 2

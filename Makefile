@@ -66,12 +66,10 @@ SHELL=/bin/bash
 ################################################################################
 
 #cutoff=248956422
-cutoff=1000000
-read_size=5000
-#TODO: update
-# bash only supports integers
-# TODO increase to 30
-num_reads=$$(( $(cutoff) * 15 / $(read_size)))
+CHR_CUTOFF=10000000
+READ_SIZE=5000
+READ_COVERAGE=60
+SNP_RATE=0.01
 
 FOLDERS=build data debug perm progs
 
@@ -184,15 +182,11 @@ include pipeline/hp-analysis.mk
 # Setup data
 ################################################################################
 
-perm/chr1.fa: | perm
-	curl "ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCA_000001405.22_GRCh38.p7/GCA_000001405.22_GRCh38.p7_assembly_structure/Primary_Assembly/assembled_chromosomes/FASTA/chr1.fna.gz" | \
+perm/grch38_%.fa: | perm
+	curl "ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCA_000001405.22_GRCh38.p7/GCA_000001405.22_GRCh38.p7_assembly_structure/Primary_Assembly/assembled_chromosomes/FASTA/$*.fna.gz" | \
 		gunzip > $@
 
-perm/chr2.fa: | perm
-	curl "ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCA_000001405.22_GRCh38.p7/GCA_000001405.22_GRCh38.p7_assembly_structure/Primary_Assembly/assembled_chromosomes/FASTA/chr2.fna.gz" | \
-		gunzip > $@
-
-CHROMOSOMES=chr1 chr2
+CHROMOSOMES=$(addprefix grch38_,chr1 chr2 chr3)
 CHROMOSOMES_DIRS=$(addprefix data/,$(CHROMOSOMES))
 
 FOLDERS += $(CHROMOSOMES_DIRS)
@@ -210,7 +204,7 @@ test: $(PRUNER_TESTDIR)/bin
 
 ################################################################################
 # Save intermediate files during development
-#%.simread1.fq %.simread2.fq %.bwt %.fai %.fa %.samsorted.bam %.gvcf %.dict %.ali %.log %.bai %.plain %.ids
+# (remove for production)
 ################################################################################
 
 .SECONDARY:

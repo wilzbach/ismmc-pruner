@@ -10,7 +10,7 @@ build/pruner_test: | build
 
 # create object files
 $(PRUNER_BUILDDIR)/pruner.o : $(PRUNER_SOURCES) | $(DCC)
-	$(DCC) -c -debug -g -w -vcolumns -profile -of$@ $^
+	$(DCC) -c -debug -g -w -vcolumns -of$@ $^
 
 # binary
 progs/pruner: $(PRUNER_BUILDDIR)/pruner.o | $(DCC)
@@ -33,12 +33,12 @@ $(PRUNER_TESTDIR)/bin: $(PRUNER_SOURCES) | $(DCC) $(PRUNER_TESTDIR) debug
 # III) expects that the ordered ids are sorted
 ################################################################################
 
-%.pruned.bam.plain: %.samsorted.bam | progs/pruner_in
+%.pruned.plain: %.samsorted.bam | progs/pruner_in
 	$| $< > $@
 
-%.pruned.bam.ids: %.pruning.bam.plain progs/pruner
+%.pruned.ids: %.pruned.plain progs/pruner
 	cat $< | $(word 2, $^) --max-coverage 3 > $@
 
-%.pruned.bam.filtered.bam: %.samsorted.bam %.pruned.bam.ids | progs/pruner_out
+%.pruned.filtered.bam: %.samsorted.bam %.pruned.ids | progs/pruner_out
 	cat $(word 2, $^) | $| $< $@ > /dev/null
 
