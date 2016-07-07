@@ -1,67 +1,5 @@
 SHELL=/bin/bash
 ################################################################################
-# A simple & flexible bioinformatics pipeline
-# ==========================================
-#
-# Ideas
-# -----
-#
-# - automatic dependency injection with Makefile rules, e.g. the dependency
-#   BWA is only downloaded & compiled if needed
-# - fully automated installation of required tools from their source
-# - if possible, wildcard patterns instead of rules (e.g. <file>.bwt runs bwt)
-# - make will generate a dependency chain for our data and regenerate outdated files
-# - be able to run the newest, latest software on any machine
-# - use versioning for all dependencies to all reproducibility
-# - use make -j8 (will automatically parallelize wherever possible)
-#
-# Building from source
-# --------------------
-#
-# - we must be able to run the newest software on old clusters, hence everything
-#   needs to be built from scratch
-# - some software licenses don't allow binary releases (GATK)
-# - we need to be able to inspect & modify the source code
-# - we want to _understand_ every bit of out pipeline
-# - if something doesn't build, it's outdated anyhows
-#
-# Dependencies
-# ------------
-#
-# Dependencies are automatically generated, e.g.
-#
-# - bwa -> bwt files
-# - mason_variator needs fai
-# - GATK needs fai and dict
-
-# Directory structure:
-# -------------------
-#
-# - build: all required build tools and source code of required programs
-# - data: all experimental results
-# - debug: temporary folder that is used to print some debug information for tests
-# - perm: permanent data that shouldn't be deleted
-# - progs: all required executables of the pipeline
-# - src: this pipeline's source code
-#
-# Popular make targets:
-# --------------------
-#
-# - all: runs the entire pipeline
-# - test: runs D unittests
-#
-# Pick out any intermediate file in the pipeline and run `make <file>` to generate
-# it
-#
-# Notes:
-# ------
-#
-# - due to limitations in the Makefile the working directory must be the directory
-#   of this Makefile
-# - the folder names are coded statically on purpose
-################################################################################
-
-################################################################################
 # Dynamic variables
 ################################################################################
 
@@ -74,10 +12,7 @@ SNP_RATE=0.01
 FOLDERS=build data debug perm progs
 
 ################################################################################
-# Build tools
-# -----------
-#
-# We don't want to fiddle with them, download as binaries
+# Build tools (as binaries)
 ################################################################################
 
 include pipeline/platform.mk
@@ -104,10 +39,7 @@ GRADLE_VERSION=2.14
 include pipeline/gradle.mk
 
 ################################################################################
-# Python
-# ------
-#
-# We need Python sources to be able to build binary extensions
+# Python (from source)
 ################################################################################
 
 PYTHON_VERSION=3.5.2
@@ -118,10 +50,10 @@ MATPLOTLIB_VERSION=1.5.1
 include pipeline/python.mk
 
 ################################################################################
-# PROGS
-# -----
+# Progams (from source)
+# --------------------
 #
-# Because having portable, versioned and modifiable progs is nice
+# Having portable, versioned and modifiable progs is nice
 #
 # - avoid breakage (fixed versions)
 # - independent from host system (nice for clusters with old distributions)
@@ -161,7 +93,7 @@ WHATSHAP_VERSION=0.12
 include pipeline/whatshap.mk
 
 ################################################################################
-# Pipeline build dependencies
+# Pipeline: build dependencies
 ################################################################################
 
 PRUNER_SOURCE_DIR=src/graph
@@ -171,7 +103,7 @@ include pipeline/rwildcard.mk
 include pipeline/pruner.mk
 
 ################################################################################
-# Pipeline analysis
+# Pipeline: analysis
 ################################################################################
 
 include pipeline/reference.mk
@@ -179,7 +111,7 @@ include pipeline/statistics.mk
 include pipeline/hp-analysis.mk
 
 ################################################################################
-# Setup data
+# Pipeline: data
 ################################################################################
 
 perm/grch38_%.fa: | perm
@@ -203,8 +135,8 @@ test: $(PRUNER_TESTDIR)/bin
 	$<
 
 ################################################################################
-# Save intermediate files during development
-# (remove for production)
+# Development settings
 ################################################################################
 
+# Save intermediate files during development (remove for production)
 .SECONDARY:
