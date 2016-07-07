@@ -8,7 +8,7 @@ import sys
 
 parser = argparse.ArgumentParser(description="Plot coverage")
 parser.add_argument('inFile', nargs=1, type=argparse.FileType('r'), help='Input file')
-parser.add_argument('-o', '--outFile', dest='outFile', type=argparse.FileType('w'),
+parser.add_argument('-o', '--outFile', dest='outFile', type=argparse.FileType('wb'),
                     default=sys.stdout, help='Output file (default: stdout)')
 args = parser.parse_args()
 
@@ -21,6 +21,10 @@ s = np.sum(cov[:, 1])
 mean = np.sum([p[0] * p[1] / s for p in cov])
 ts = np.arange(0, np.max(cov), 10)
 mean_ts = [mean for t in ts]
-plt.plot(mean_ts, ts, color='green')
 
-plt.savefig(args.outFile, bbox_inches='tight')
+plt.plot(mean_ts, ts, color='green')
+plt.xlabel('Coverage')
+plt.ylabel('Number of reads')
+
+plt.savefig(args.outFile, bbox_inches='tight', format="pdf")
+plt.close()

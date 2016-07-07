@@ -4,8 +4,8 @@ SHELL=/bin/bash
 ################################################################################
 
 #cutoff=248956422
-CHR_CUTOFF=1000000
-READ_SIZE=20000
+CHR_CUTOFF=100000
+READ_SIZE=1000
 READ_COVERAGE=10
 SNP_RATE=0.01
 
