@@ -9,6 +9,13 @@ progs/gatk.jar: build/gatk-protected-$(GATK_VERSION) $(MVN) | progs
 	sed 's/^import oracle.jrockit/\/\/import oracle.jrockit/' \
 		-i $</public/gatk-tools-public/src/main/java/org/broadinstitute/gatk/tools/walkers/varianteval/VariantEval.java
 	sed 's/<module>external-example<\/module>//' -i $</public/pom.xml
+
+	# disable annoying call-home "feature"
+	COMMAND="patch -Np1 -i ../../pipeline/gatk_disable_home.patch -d $<"; \
+	if [[ ! "$$COMMAND -R --dry-run" ]] ; then \
+		"$$COMMAND" ; \
+	fi
+
 	$(MVN) -f $< verify -P\!queue
 	cp $</target/GenomeAnalysisTK.jar $@
 

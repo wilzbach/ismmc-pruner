@@ -1,0 +1,25 @@
+diff -aur gatk/public/gatk-engine/src/main/java/org/broadinstitute/gatk/engine/phonehome/GATKRunReport.java gatk.patch/public/gatk-engine/src/main/java/org/broadinstitute/gatk/engine/phonehome/GATKRunReport.java
+--- gatk/public/gatk-engine/src/main/java/org/broadinstitute/gatk/engine/phonehome/GATKRunReport.java	2016-02-09 23:31:58.776927220 +0200
++++ gatk.patch/public/gatk-engine/src/main/java/org/broadinstitute/gatk/engine/phonehome/GATKRunReport.java	2016-02-09 23:44:45.078408488 +0200
+@@ -343,19 +343,8 @@
+     public boolean postReport(final PhoneHomeOption type) {
+         if ( type == null ) throw new IllegalArgumentException("type cannot be null");
+ 
+-        logger.debug("Posting report of type " + type);
+-        switch (type) {
+-            case NO_ET: // don't do anything
+-                return false;
+-            case AWS:
+-                wentToAWS = true;
+-                return postReportToAWSS3() != null;
+-            case STDOUT:
+-                return postReportToStream(System.out);
+-            default:
+-                exceptDuringRunReport("BUG: unexpected PhoneHomeOption ");
+-                return false;
+-        }
++        logger.debug("Disabled phone home crap [patched]");
++        return true;
+     }
+ 
+     // ---------------------------------------------------------------------------
