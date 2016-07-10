@@ -4,9 +4,9 @@ SHELL=/bin/bash
 ################################################################################
 
 #cutoff=248956422
-CHR_CUTOFF=100000
-READ_SIZE=1000
-READ_COVERAGE=10
+CHR_CUTOFF=500000
+READ_SIZE=100
+READ_COVERAGE=100
 SNP_RATE=0.01
 
 FOLDERS=build data debug perm progs

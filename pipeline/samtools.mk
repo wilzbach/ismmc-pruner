@@ -37,3 +37,6 @@ build/bam: build/samtools-$(SAMTOOLS_VERSION) | build
 # reads statistics
 %.samstats: % $(SAMTOOLS)
 	$(SAMTOOLS) stats $< > $@
+
+%.depth: % $(SAMTOOLS)
+	$(SAMTOOLS) depth $< > $@
