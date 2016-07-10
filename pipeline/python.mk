@@ -27,16 +27,16 @@ $(PIP): $(PYTHON_FOLDER)
 
 BIOPYTHON=$(PYTHON_SITE_PACKAGES)/Bio
 
-$(BIOPYTHON): $(PIP)
+$(BIOPYTHON): | $(PIP)
 	@echo $(BIOPYTHON)
 	$(PIP) install --ignore-installed biopython==$(BIOPYTHON_VERSION)
 
 NUMPY=$(PYTHON_SITE_PACKAGES)/numpy
 
-$(NUMPY): $(PIP)
+$(NUMPY): | $(PIP)
 	$(PIP) install --ignore-installed numpy==$(NUMPY_VERSION)
 
 MATPLOTLIB=$(PYTHON_SITE_PACKAGES)/matplotlib
 
-$(MATPLOTLIB): $(PIP)
+$(MATPLOTLIB): | $(PIP)
 	$(PIP) install --ignore-installed matplotlib==$(MATPLOTLIB_VERSION)
