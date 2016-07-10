@@ -3,10 +3,9 @@ SHELL=/bin/bash
 # Dynamic variables
 ################################################################################
 
-#cutoff=248956422
-CHR_CUTOFF=500000
-READ_SIZE=100
-READ_COVERAGE=100
+CHR_CUTOFF=1000000 # use -1 for entire chromosome
+READ_SIZE=5000
+READ_COVERAGE=120
 SNP_RATE=0.01
 
 FOLDERS=build data debug perm progs
@@ -45,6 +44,7 @@ PYTHON_VERSION=3.5.2
 BIOPYTHON_VERSION=1.67
 NUMPY_VERSION=1.11.1
 MATPLOTLIB_VERSION=1.5.1
+SCIPY_VERSION=0.17.1
 
 include pipeline/python.mk
 
@@ -117,10 +117,8 @@ perm/grch38_%.fa: | perm
 	curl "ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCA_000001405.22_GRCh38.p7/GCA_000001405.22_GRCh38.p7_assembly_structure/Primary_Assembly/assembled_chromosomes/FASTA/$*.fna.gz" | \
 		gunzip > $@
 
-CHROMOSOMES=$(addprefix grch38_,chr1 chr2 chr3)
-CHROMOSOMES_DIRS=$(addprefix data/,$(CHROMOSOMES))
+CHROMOSOMES=$(addprefix data/, $(addprefix grch38_,chr1 chr2 chr3))
 
-FOLDERS += $(CHROMOSOMES_DIRS)
 include pipeline/folders.mk
 
 ################################################################################
@@ -128,7 +126,7 @@ include pipeline/folders.mk
 ################################################################################
 
 # run the entire pipeline
-all: $(addsuffix /mut.hp.compare, $(CHROMOSOMES_DIRS))
+all: $(addsuffix /mut.hp.compare, $(CHROMOSOMES))
 
 test: $(PRUNER_TESTDIR)/bin
 	$<
@@ -139,3 +137,7 @@ test: $(PRUNER_TESTDIR)/bin
 
 # Save intermediate files during development (remove for production)
 .SECONDARY:
+
+# disable builtin rules
+MAKEFLAGS += --no-builtin-rules
+.SUFFIXES:
