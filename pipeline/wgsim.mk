@@ -8,11 +8,12 @@ progs/wgsim: build/wgsim-$(WGSIM_VERSION)
 
 # simulate reads
 # reads are sampled in pairs thus we need to divide by 2
-%.simread1.fq : %.fa %.fa.fai | $(WGSIM) $(PYTHON)
-	chrLength=$$(head -n1 $(word 2, $^) | cut -f2 ); \
+%.simread1.fq : %.fa src/scripts/count.py | $(WGSIM) $(BIOPYTHON) $(PYTHON)
+	chrLength=$$($(PYTHON) src/scripts/count.py -e $(CHR_CUTOFF) $< ); \
+	echo $$chrLength; \
 	numReads=$$(python -c "print(int($$chrLength * $(READ_COVERAGE) / $(READ_SIZE) / 2))"); \
 	echo $$numReads; \
-	$(WGSIM) -1 $(READ_SIZE) -2 $(READ_SIZE) -N $$numReads -R 0.0 -e 0.0 -r 0.0 -d 500 \
+	$(WGSIM) -S 42 -1 $(READ_SIZE) -2 $(READ_SIZE) -N $$numReads -R 0.0 -e 0.0 -r 0.0 -d 500 \
 		$< $@ $(subst 1.fq,2.fq,$@)
 
 %.simread2.fq: %.simread1.fq
