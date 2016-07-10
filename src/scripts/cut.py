@@ -14,5 +14,14 @@ parser.add_argument('-e', '--end', dest='end', type=int, help='End position file
 args = parser.parse_args()
 
 ge = SeqIO.read(args.inFile[0], format="fasta")
-ge.seq = ge.seq[args.start:args.end]
+
+startPos = 0
+for c in ge.seq:
+    if c == 'N':
+        startPos += 1
+    else:
+        break
+
+print("Ignoring first %d NTs" % startPos, file=sys.stderr)
+ge.seq = ge.seq[startPos:args.end + startPos]
 SeqIO.write(ge, args.outFile, format="fasta")
