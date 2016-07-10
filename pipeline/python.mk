@@ -40,3 +40,8 @@ MATPLOTLIB=$(PYTHON_SITE_PACKAGES)/matplotlib
 
 $(MATPLOTLIB): | $(PIP)
 	$(PIP) install --ignore-installed matplotlib==$(MATPLOTLIB_VERSION)
+
+SCIPY=$(PYTHON_SITE_PACKAGES)/scipy
+
+$(SCIPY): | $(PIP)
+	$(PIP) install --ignore-installed scipy==$(SCIPY_VERSION)
