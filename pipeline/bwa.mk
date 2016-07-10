@@ -1,7 +1,7 @@
 BWA=progs/bwa
 
 build/bwa-$(BWA_VERSION): | build
-	curl -L http://downloads.sourceforge.net/project/bio-bwa/bwa-$(BWA_VERSION).tar.bz2 \
+	curl -L https://github.com/lh3/bwa/releases/download/v$(BWA_VERSION)/bwa-$(BWA_VERSION).tar.bz2 \
 	| bzip2 -d | tar xf - -C $|
 
 progs/bwa: build/bwa-$(BWA_VERSION) | progs
