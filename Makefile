@@ -3,9 +3,9 @@ SHELL=/bin/bash
 # Dynamic variables
 ################################################################################
 
-CHR_CUTOFF=1000000 # use -1 for entire chromosome
+CHR_CUTOFF=300000 # use -1 for entire chromosome
 READ_SIZE=5000
-READ_COVERAGE=120
+READ_COVERAGE=20
 SNP_RATE=0.01
 
 FOLDERS=build data debug perm progs
@@ -19,6 +19,9 @@ include pipeline/platform.mk
 DMD_VERSION=2.071.0
 DCC=/usr/bin/dmd
 include pipeline/dmd.mk
+
+LDC_VERSION=1.0.0
+include pipeline/ldc.mk
 
 # needed for SeqAn
 CMAKE_VERSION=3.5.2
@@ -68,6 +71,9 @@ include pipeline/bwa.mk
 
 SAMTOOLS_VERSION=1.3
 include pipeline/samtools.mk
+
+SAMBAMBA_VERSION=0.6.3
+include pipeline/sambamba.mk
 
 GATK_VERSION=3.5
 include pipeline/gatk.mk

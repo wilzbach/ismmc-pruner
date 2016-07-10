@@ -21,18 +21,9 @@ build/samtools-$(SAMTOOLS_VERSION)/htslib-$(SAMTOOLS_VERSION)/libhts.a: build/sa
 build/bam: build/samtools-$(SAMTOOLS_VERSION) | build
 	ln -s ./samtools-$(SAMTOOLS_VERSION) $|/bam
 
-# sub-level: foo.fa.fai
+# plain-text index for sam files
 %.fai: % $(SAMTOOLS)
 	$(SAMTOOLS) faidx $<
-
-# sub-level: foo.fa.idx
-%.bai: % $(SAMTOOLS)
-	$(SAMTOOLS) index $<
-
-# each threads uses at least 800 MB (-m flag) - dont start too many!
-%.samsorted.bam: %.ali $(SAMTOOLS)
-	$(SAMTOOLS) sort --threads 4 -o $@ $<
-	$(SAMTOOLS) index $@
 
 # reads statistics
 %.samstats: % $(SAMTOOLS)
@@ -40,3 +31,12 @@ build/bam: build/samtools-$(SAMTOOLS_VERSION) | build
 
 %.depth: % $(SAMTOOLS)
 	$(SAMTOOLS) depth $< > $@
+
+# each threads uses at least 800 MB (-m flag) - dont start too many!
+#%.samsorted.bam: %.ali.sam $(SAMTOOLS)
+	#$(SAMTOOLS) sort --threads 4 -o $@ $<
+	#$(SAMTOOLS) index $@
+
+# sub-level: foo.fa.idx
+#%.bai: % $(SAMTOOLS)
+	#$(SAMTOOLS) index $<
