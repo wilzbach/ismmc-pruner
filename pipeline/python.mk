@@ -14,7 +14,9 @@ build/python-$(PYTHON_VERSION): | build
 	mv $|/Python-$(PYTHON_VERSION) $|/python-$(PYTHON_VERSION)
 
 build/python-$(PYTHON_VERSION)/local/bin/python3: build/python-$(PYTHON_VERSION)
-	cd $< && ./configure --prefix=$(shell pwd)/$</local && make -j $(NPROCS) && make install
+	cd $< && ./configure --prefix=$(shell pwd)/$</local
+	mkdir -p $</local
+	cd $< && make -j $(NPROCS) && make install
 
 build/python-$(PYTHON_VERSION)/local/bin/pyvenv: build/python-$(PYTHON_VERSION)/local/bin/python3
 
