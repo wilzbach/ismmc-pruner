@@ -20,18 +20,36 @@ void printFlow(MaxFlow!DGraph flow, edge_t source, bool[size_t] seen, size_t ind
 
 }
 
-void printGraph(DGraph graph, MaxFlow!DGraph flow, File output, string name = "MaxFlow graph")
+void printGraph(MaxFlow!DGraph flow, File output, string name = "MaxFlow graph")
 {
     import std.process;
     import std.format: format;
     import std.conv: to;
     import std.array: byPair;
-    import std.algorithm: map, joiner;
-    auto pipes = pipeProcess(["dot", "-Tps"], Redirect.all);
+    import std.algorithm: map, max, joiner;
+    import pruner.utils.algorithms : maxElement;
+
+    auto pipes = pipeProcess(["dot", "-Teps"], Redirect.all);
     auto file = pipes.stdin;
+
+    auto graph = flow.g;
 
     file.writefln(`digraph "%s" {`, name);
     file.writeln("rankdir = LR;");
+    file.writeln("overlap = scalexy;");
+    // global attributes
+    // splines=ortho
+    file.writeln("graph [nodesep=0.4, ranksep=0.4]");
+    file.writeln(`node[fontsize=25, penwidth=1, shape="record"]`);
+    file.writeln(`edge[fontsize=25, penwidth=1]`);
+
+    // source & sink
+    file.writeln(`-1 [label="s", shape="oval"];`);
+    edge_t maxEdge = -1;
+    foreach (vs; graph.g.values)
+        maxEdge = max(maxEdge, maxElement(vs.keys));
+
+    file.writeln(`%d [label="t", shape="oval"];`.format(maxEdge));
     {
         void printEdge(edge_t source, bool[size_t] seen)
         {
@@ -43,9 +61,14 @@ void printGraph(DGraph graph, MaxFlow!DGraph flow, File output, string name = "M
 
                     // edge label properties
                     string[string] attrs;
-                    attrs["label"] = to!string(flow.flow[edge.cid]);
-                    //attrs["color"] = edge.read ? "red" : "grey";
+                    attrs["label"] = format("%d / %d", flow.flow[edge.cid], edge.capacity);
                     attrs["style"] = edge.read ? "solid" : "dashed";
+
+                    if (flow.flow[edge.cid] == 0)
+                    {
+                        attrs["color"] = edge.read ? "red" : "grey";
+                        attrs["fontcolor"] = edge.read ? "red" : "grey";
+                    }
 
                     // convert labels to string
                     auto attrsStr = attrs.byPair.map!((t) => format(`%s = "%s"`, t[0], t[1])).joiner(",");

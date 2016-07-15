@@ -1,5 +1,6 @@
 PRUNER_BUILDDIR=build/pruner
 PRUNER_TESTDIR=build/pruner_test
+#DISABLE_LOGGING=-version=StdLoggerDisableLogging
 
 PRUNERFLAGS_IMPORT = $(foreach dir,$(PRUNER_SOURCE_DIR), -I$(dir))
 PRUNER_SOURCES = $(call rwildcard,$(PRUNER_SOURCE_DIR)/pruner/,*.d)
@@ -10,7 +11,7 @@ build/pruner_test: | build
 
 # create object files
 $(PRUNER_BUILDDIR)/pruner.o : $(PRUNER_SOURCES) | $(DCC)
-	$(DCC) -c -debug -g -w -vcolumns -of$@ $^
+	$(DCC) -c -debug -g -w -vcolumns $(DISABLE_LOGGING) -of$@ $^
 
 # binary
 progs/pruner: $(PRUNER_BUILDDIR)/pruner.o | $(DCC)
@@ -36,7 +37,8 @@ $(PRUNER_TESTDIR)/bin: $(PRUNER_SOURCES) | $(DCC) $(PRUNER_TESTDIR) debug
 	$| $< > $@
 
 %.pruned.ids: %.pruned.plain progs/pruner
-	cat $< | $(word 2, $^) --max-coverage 3 > $@
+	#cat $< | $(word 2, $^) --max-coverage 4 > $@
+	cat $< | $(word 2, $^) -p random -m 2 > $@
 
 %.pruned.filtered.bam: %.samsorted.bam %.pruned.ids | progs/pruner_out
 	cat $(word 2, $^) | $| $< $@ > /dev/null

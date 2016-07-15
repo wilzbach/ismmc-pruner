@@ -3,9 +3,9 @@ SHELL=/bin/bash
 # Dynamic variables
 ################################################################################
 
-CHR_CUTOFF=300000 # use -1 for entire chromosome
-READ_SIZE=5000
-READ_COVERAGE=20
+CHR_CUTOFF=5000000 # use -1 for entire chromosome
+READ_SIZE=50000
+READ_COVERAGE=30
 SNP_RATE=0.01
 
 FOLDERS=build data debug perm progs

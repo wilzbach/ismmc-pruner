@@ -23,6 +23,11 @@ auto maxFlowPruning(R)(R reads, edge_t maxReadsPerPos)
 
         const(Read)[] front()
         {
+            if (b.front.empty)
+            {
+                Read[] rs;
+                return rs;
+            }
             return maxFlowOptByRef(b.front, maxReadsPerPos).flow.prune;
         }
 

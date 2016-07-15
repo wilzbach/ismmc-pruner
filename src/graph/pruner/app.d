@@ -174,6 +174,20 @@ bool contains(const(Read)[] reads, Read target ) {
     return reads.canFind!((read) => read.start == target.start && read.end == target.end);
 }
 
+// simple test
+unittest
+{
+    auto reads = [Read(0, 10), Read(0, 5),
+                  Read(2, 4), Read(3, 10),
+                  Read(5, 7), Read(7, 9),
+                  Read(7, 10), Read(9, 10)];
+    foreach (i, ref read; reads)
+        read.id = i;
+
+    auto opt = maxFlowOpt(reads, 2);
+    opt.flow.printGraph(File("debug/test0.eps", "w"));
+}
+
 // test with duplicates read
 unittest
 {
@@ -208,6 +222,8 @@ unittest
     //assert(pruned.length == 3);
 
     writeln("Test 1 OK");
+
+    opt.flow.printGraph(File("debug/test1.eps", "w"));
 }
 
 unittest
@@ -226,6 +242,7 @@ unittest
     assert(pruned == [Read(0, 10, 0),
                           Read(20, 31, 3)]);
     writeln("Test 2 OK");
+    opt.flow.printGraph(File("debug/test2.eps", "w"));
 }
 
 unittest
@@ -246,6 +263,7 @@ unittest
     //assert(maxFlowOpt(reads2, 3, 1) == 3);
     //assert(maxFlowOpt([], 3, 1) == 1);
     writeln("Test 3 OK");
+    opt.flow.printGraph(File("debug/test3.eps", "w"));
 }
 
 unittest

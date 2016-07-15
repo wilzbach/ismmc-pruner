@@ -40,7 +40,7 @@ int main(int argc, char** argv)
         if (nextPrunedId != id++) {
             bam_write1(out, b);
         } else {
-            printf("pruning: id: %lu, pos: %d, length: %d\n", nextPrunedId, b->core.pos, b->core.l_qseq);
+            // fprintf(stderr, "pruning: id: %lu, pos: %d, length: %d\n", nextPrunedId, b->core.pos, b->core.l_qseq);
             if(!scanf ("%lu", &nextPrunedId)){
                 break;
             }

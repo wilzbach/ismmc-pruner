@@ -1,0 +1,60 @@
+cat data/cov_30b/grch38_chr1/mut.pruned.plain | progs/pruner --max-coverage 1 > data/cov_30b/grch38_chr1/mut.pruned.ids
+make data/cov_30b/grch38_chr1/mut.pruned.ids  2.25s user 0.04s system 100% cpu 2.284 total
+cat data/cov_30b/grch38_chr1/mut.pruned.plain | progs/pruner --max-coverage 2 > data/cov_30b/grch38_chr1/mut.pruned.ids
+make data/cov_30b/grch38_chr1/mut.pruned.ids  3.49s user 0.03s system 99% cpu 3.521 total
+cat data/cov_30b/grch38_chr1/mut.pruned.plain | progs/pruner --max-coverage 3 > data/cov_30b/grch38_chr1/mut.pruned.ids
+make data/cov_30b/grch38_chr1/mut.pruned.ids  4.03s user 0.06s system 99% cpu 4.090 total
+cat data/cov_30b/grch38_chr1/mut.pruned.plain | progs/pruner --max-coverage 4 > data/cov_30b/grch38_chr1/mut.pruned.ids
+make data/cov_30b/grch38_chr1/mut.pruned.ids  6.14s user 0.03s system 99% cpu 6.174 total
+cat data/cov_30b/grch38_chr1/mut.pruned.plain | progs/pruner --max-coverage 5 > data/cov_30b/grch38_chr1/mut.pruned.ids
+make data/cov_30b/grch38_chr1/mut.pruned.ids  6.98s user 0.03s system 99% cpu 7.009 total
+cat data/cov_30b/grch38_chr1/mut.pruned.plain | progs/pruner --max-coverage 6 > data/cov_30b/grch38_chr1/mut.pruned.ids
+make data/cov_30b/grch38_chr1/mut.pruned.ids  7.95s user 0.03s system 99% cpu 7.988 total
+cat data/cov_30b/grch38_chr1/mut.pruned.plain | progs/pruner --max-coverage 7 > data/cov_30b/grch38_chr1/mut.pruned.ids
+make data/cov_30b/grch38_chr1/mut.pruned.ids  8.73s user 0.05s system 99% cpu 8.786 total
+cat data/cov_30b/grch38_chr1/mut.pruned.plain | progs/pruner --max-coverage 8 > data/cov_30b/grch38_chr1/mut.pruned.ids
+make data/cov_30b/grch38_chr1/mut.pruned.ids  12.24s user 0.03s system 99% cpu 12.269 total
+cat data/cov_30b/grch38_chr1/mut.pruned.plain | progs/pruner --max-coverage 9 > data/cov_30b/grch38_chr1/mut.pruned.ids
+make data/cov_30b/grch38_chr1/mut.pruned.ids  13.39s user 0.05s system 99% cpu 13.443 total
+cat data/cov_30b/grch38_chr1/mut.pruned.plain | progs/pruner --max-coverage 10 > data/cov_30b/grch38_chr1/mut.pruned.ids
+make data/cov_30b/grch38_chr1/mut.pruned.ids  14.58s user 0.02s system 99% cpu 14.616 total
+cat data/cov_30b/grch38_chr1/mut.pruned.plain | progs/pruner --max-coverage 11 > data/cov_30b/grch38_chr1/mut.pruned.ids
+make data/cov_30b/grch38_chr1/mut.pruned.ids  15.75s user 0.03s system 99% cpu 15.783 total
+cat data/cov_30b/grch38_chr1/mut.pruned.plain | progs/pruner --max-coverage 12 > data/cov_30b/grch38_chr1/mut.pruned.ids
+make data/cov_30b/grch38_chr1/mut.pruned.ids  16.87s user 0.02s system 99% cpu 16.898 total
+cat data/cov_30b/grch38_chr1/mut.pruned.plain | progs/pruner --max-coverage 13 > data/cov_30b/grch38_chr1/mut.pruned.ids
+make data/cov_30b/grch38_chr1/mut.pruned.ids  18.04s user 0.05s system 99% cpu 18.094 total
+cat data/cov_30b/grch38_chr1/mut.pruned.plain | progs/pruner --max-coverage 14 > data/cov_30b/grch38_chr1/mut.pruned.ids
+make data/cov_30b/grch38_chr1/mut.pruned.ids  19.22s user 0.04s system 99% cpu 19.274 total
+cat data/cov_30b/grch38_chr1/mut.pruned.plain | progs/pruner --max-coverage 15 > data/cov_30b/grch38_chr1/mut.pruned.ids
+make data/cov_30b/grch38_chr1/mut.pruned.ids  20.37s user 0.03s system 99% cpu 20.407 total
+cat data/cov_30b/grch38_chr1/mut.pruned.plain | progs/pruner --max-coverage 16 > data/cov_30b/grch38_chr1/mut.pruned.ids
+make data/cov_30b/grch38_chr1/mut.pruned.ids  26.53s user 0.04s system 99% cpu 26.577 total
+cat data/cov_30b/grch38_chr1/mut.pruned.plain | progs/pruner --max-coverage 17 > data/cov_30b/grch38_chr1/mut.pruned.ids
+make data/cov_30b/grch38_chr1/mut.pruned.ids  28.03s user 0.04s system 99% cpu 28.070 total
+cat data/cov_30b/grch38_chr1/mut.pruned.plain | progs/pruner --max-coverage 18 > data/cov_30b/grch38_chr1/mut.pruned.ids
+make data/cov_30b/grch38_chr1/mut.pruned.ids  29.37s user 0.04s system 99% cpu 29.414 total
+cat data/cov_30b/grch38_chr1/mut.pruned.plain | progs/pruner --max-coverage 19 > data/cov_30b/grch38_chr1/mut.pruned.ids
+make data/cov_30b/grch38_chr1/mut.pruned.ids  30.90s user 0.05s system 99% cpu 30.947 total
+cat data/cov_30b/grch38_chr1/mut.pruned.plain | progs/pruner --max-coverage 20 > data/cov_30b/grch38_chr1/mut.pruned.ids
+make data/cov_30b/grch38_chr1/mut.pruned.ids  32.32s user 0.04s system 99% cpu 32.385 total
+cat data/cov_30b/grch38_chr1/mut.pruned.plain | progs/pruner --max-coverage 21 > data/cov_30b/grch38_chr1/mut.pruned.ids
+make data/cov_30b/grch38_chr1/mut.pruned.ids  34.05s user 0.08s system 99% cpu 34.167 total
+cat data/cov_30b/grch38_chr1/mut.pruned.plain | progs/pruner --max-coverage 22 > data/cov_30b/grch38_chr1/mut.pruned.ids
+make data/cov_30b/grch38_chr1/mut.pruned.ids  35.23s user 0.05s system 99% cpu 35.288 total
+cat data/cov_30b/grch38_chr1/mut.pruned.plain | progs/pruner --max-coverage 23 > data/cov_30b/grch38_chr1/mut.pruned.ids
+make data/cov_30b/grch38_chr1/mut.pruned.ids  36.98s user 0.04s system 100% cpu 37.013 total
+cat data/cov_30b/grch38_chr1/mut.pruned.plain | progs/pruner --max-coverage 24 > data/cov_30b/grch38_chr1/mut.pruned.ids
+make data/cov_30b/grch38_chr1/mut.pruned.ids  38.31s user 0.03s system 99% cpu 38.345 total
+cat data/cov_30b/grch38_chr1/mut.pruned.plain | progs/pruner --max-coverage 25 > data/cov_30b/grch38_chr1/mut.pruned.ids
+make data/cov_30b/grch38_chr1/mut.pruned.ids  39.56s user 0.02s system 99% cpu 39.589 total
+cat data/cov_30b/grch38_chr1/mut.pruned.plain | progs/pruner --max-coverage 26 > data/cov_30b/grch38_chr1/mut.pruned.ids
+make data/cov_30b/grch38_chr1/mut.pruned.ids  40.94s user 0.04s system 99% cpu 40.986 total
+cat data/cov_30b/grch38_chr1/mut.pruned.plain | progs/pruner --max-coverage 27 > data/cov_30b/grch38_chr1/mut.pruned.ids
+make data/cov_30b/grch38_chr1/mut.pruned.ids  42.63s user 0.04s system 99% cpu 42.677 total
+cat data/cov_30b/grch38_chr1/mut.pruned.plain | progs/pruner --max-coverage 28 > data/cov_30b/grch38_chr1/mut.pruned.ids
+make data/cov_30b/grch38_chr1/mut.pruned.ids  44.01s user 0.03s system 99% cpu 44.047 total
+cat data/cov_30b/grch38_chr1/mut.pruned.plain | progs/pruner --max-coverage 29 > data/cov_30b/grch38_chr1/mut.pruned.ids
+make data/cov_30b/grch38_chr1/mut.pruned.ids  45.35s user 0.04s system 99% cpu 45.399 total
+cat data/cov_30b/grch38_chr1/mut.pruned.plain | progs/pruner --max-coverage 30 > data/cov_30b/grch38_chr1/mut.pruned.ids
+make data/cov_30b/grch38_chr1/mut.pruned.ids  46.82s user 0.02s system 99% cpu 46.854 total

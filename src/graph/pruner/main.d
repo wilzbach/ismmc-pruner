@@ -1,6 +1,6 @@
 import pruner.formats;
 import std.stdio;
-
+import std.experimental.logger;
 
 // TODO: dirty hack - find a better solution
 version (unittest) {
@@ -38,12 +38,14 @@ void main(string[] args)
     final switch (progs)
     {
         case Progs.maxflow:
+            info("start maxflow");
             import pruner.strategies.pruning: maxFlowPruning;
             // we may have multiple components
             foreach (rs; maxFlowPruning(reads, maxCoverage))
                 rs.outputReads(stdout);
             break;
         case Progs.random:
+            info("start random");
             import pruner.strategies.random: randomPruning;
             randomPruning(reads).outputReads(stdout);
             break;
@@ -67,8 +69,13 @@ auto getReads(File fileIn)
     {
         // chr, start, stop, id
         auto cread = line.splitter('\t').map!(to!uint);
-        cread.dropOne;
-        auto r = new Read(cread.dropOne.front, cread.dropOne.front, cread.dropOne.front);
+        cread.popFront;
+        uint start = cread.front;
+        cread.popFront;
+        uint end = cread.front;
+        cread.popFront;
+        uint id = cread.front;
+        auto r = new Read(start, end, id);
         // read is not-copyable, but moveable
          ++reads.length;
         move(r, reads[$-1]);
@@ -91,7 +98,18 @@ Serializes the reads to a text format
 */
 void outputReads(R)(R reads, File outFile)
 {
-    foreach (const ref r; reads)
+    import std.algorithm : sort;
+
+    // sorting required
+    import std.traits : Unqual;
+
+    Read[] ps = new Read[reads.length];
+    foreach (i, ref r; reads)
+        ps[i] = Read(r.start, r.end, r.id);
+
+    ps.sort!(`a.id < b.id`);
+
+    foreach (const ref r; ps)
         outFile.writeln(r.id);
 }
 
