@@ -1,0 +1,18 @@
+name: bio
+channels:
+- r
+- bioconda
+- defaults
+dependencies:
+- bioconda::bwa=0.7.15=0
+- bioconda::curl=7.45.0=1
+- bioconda::freebayes=1.0.2.29=py35_2
+- bioconda::samtools=1.3.1=1
+- openssl=1.0.2h=1
+- python=3.5.2=0
+- r::ncurses=5.9=4
+- readline=6.2=2
+- sqlite=3.13.0=0
+- zlib=1.2.8=3
+prefix: /home/xsebi/.conda/envs/bio
+
