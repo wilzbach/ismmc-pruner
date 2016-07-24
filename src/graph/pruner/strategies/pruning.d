@@ -44,7 +44,7 @@ unittest
     auto reads = [Read(0, 8), Read(0, 2), Read(1, 3), Read(1, 10),
                   Read(2, 6), Read(4, 10), Read(20, 30)];
     auto p = maxFlowPruning(reads, 3);
-    assert(p.front == [Read(2, 6), Read(1, 3)]);
+    assert(p.front == [Read(1, 10)]);
     p.popFront;
     assert(!p.empty);
     assert(p.front == []);

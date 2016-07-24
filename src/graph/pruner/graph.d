@@ -53,6 +53,7 @@ class Graph(bool directed = true)
 
     TailEdge addEdge(edge_t tail, edge_t head, edge_t capacity, const(Read) read = null)
     {
+        assert(tail < head, "tail must be lower than head");
         auto e = new TailEdge(capacity, cid, cid + 1, read);
         g[tail][head]  ~= e;
         cid_hashed[cid++] = e;
@@ -177,8 +178,7 @@ struct MaxFlow(Graph)
             if (!_path.empty)
             {
                 pathMap.remove(path[$-1].cid);
-                // TODO: What's the proper way to avoid that the slice is copied?
-                _path = _path.dropBackOne();
+                _path = _path[0..$-1];
             }
         }
 
@@ -201,17 +201,24 @@ struct MaxFlow(Graph)
         if (source == sink)
             return true;
         // iterate over all edges of the source
+        //infof("start from %s-%s", source, sink);
         foreach (target, edge; g.getEdgePairs(source))
         {
+            // speed-up performance with this filter against reverse edges
+            if (edge.capacity == 0)
+                continue;
+
             // remaining possible flow
             edge_t residual = edge.capacity - flow[edge.cid];
             if (residual > 0 && !path.hasEdge(edge))
             {
+                // avoid unnecessary allocations
                 path.addEdge(edge);
                 auto result = findPath(target, sink, path);
                 if (result)
                     return true;
                 else
+                    // rollback wrong paths
                     path.removeLast();
             }
         }
@@ -222,6 +229,7 @@ struct MaxFlow(Graph)
     edge_t maxFlow(edge_t source, edge_t sink)
     {
         import std.experimental.logger;
+        import pruner.utils.algorithms : minElement;
         PathWithMap p;
         if(!findPath(source, sink, p))
         {
@@ -229,21 +237,25 @@ struct MaxFlow(Graph)
             return 0;
         }
 
-        //infof("Path: %s", p);
+        infof("Found start path: %s", p);
         for (;;)
         {
             // TODO: make native loop
-            auto flow = p.path.map!((x) => x.capacity - flow[x.cid]).minPos.front;
+            auto flow = p.path.map!((x) => x.capacity - flow[x.cid]).minElement;
+            infof("Update flow %d", flow);
+
             // TODO: this is expensive
             foreach (edge; p.path)
             {
                 this.flow[edge.cid] += flow;
                 this.flow[edge.reverse_cid] -= flow;
             }
-            //info("Updating edges completed", flow);
             p = PathWithMap.init;
+            infof("Searching path %d-%d", source, sink);
             if (!findPath(source, sink, p))
                 break;
+
+            infof("Found new path");
         }
         return g.getEdgeTails(source).map!((x) => flow[x.cid]).sum;
     }
@@ -268,6 +280,8 @@ auto maxFlow(Graph)(auto ref Graph g, edge_t source, edge_t sink)
 {
     import std.typecons;
     auto f = MaxFlow!Graph(g);
+
+    import pruner.output;
     auto val = f.maxFlow(source, sink);
     import std.stdio;
     return tuple!("max", "flow")(val, f);
