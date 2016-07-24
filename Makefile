@@ -7,7 +7,7 @@ SHELL=pipeline/time.sh
 CHR_CUTOFF=50000000 # use -1 for entire chromosome
 READ_SIZE=50000
 READ_COVERAGE=30
-SNP_RATE=0.01
+SNP_RATE=0.001
 
 FOLDERS=build data debug perm progs
 
