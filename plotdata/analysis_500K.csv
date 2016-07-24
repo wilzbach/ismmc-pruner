@@ -1,0 +1,4 @@
+coverage,time_ismmc,num_reads,time_whatshap,nr_variants
+2,0m0.003s,10,0m0.352s,346
+12,0m0.003s,60,0m0.436s,346
+22,0m0.003s,104,0m0.565s,346
