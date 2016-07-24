@@ -26,11 +26,11 @@ build/seqan-seqan-v$(SEQAN_VERSION)/build: build/seqan-seqan-v$(SEQAN_VERSION) |
 		-B$@ \
 		-H$<
 
-progs/mason_variator: build/seqan-seqan-v$(SEQAN_VERSION)/build | progs
+progs/mason_variator: build/seqan-seqan-v$(SEQAN_VERSION)/build build/seqan-seqan-v$(SEQAN_VERSION)/apps/mason2/mason_variator.cpp | progs
 	cd $< && make -j $(NPROCS) mason_variator
 	cp $</bin/mason_variator $@
 
-progs/mason_simulator: | build/seqan-seqan-v$(SEQAN_VERSION)/build | progs
+progs/mason_simulator: build/seqan-seqan-v$(SEQAN_VERSION)/build build/seqan-seqan-v$(SEQAN_VERSION)/apps | progs
 	cd $< && make -j $(NPROCS) mason_simulator
 	cp $</bin/mason_simulator $@
 
@@ -41,6 +41,6 @@ progs/mason_simulator: | build/seqan-seqan-v$(SEQAN_VERSION)/build | progs
 # mutate (SNPs, Indels, SVs)
 ################################################################################
 
-%/mut.fa: $$*/ref.fa $$*/ref.fa.fai | $(MASON_VARIATOR)
-	$(MASON_VARIATOR) --snp-rate $(SNP_RATE) -ir $< -of $@ -ov $*/mut.vcf \
+%/mut.fa: $$*/ref.fa $$*/ref.fa.fai $(MASON_VARIATOR)
+	$(MASON_VARIATOR) --snp-rate $(SNP_RATE) -ir $< -of $@ -ov $(word 1, $*)/mut.vcf \
 		--out-breakpoints $@.tsv --num-haplotypes 2
