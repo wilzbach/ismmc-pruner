@@ -1,0 +1,20 @@
+717,724c717,718
+< 
+<         // PATCH: only mutate one haplotype
+<         std::uniform_int_distribution<int> dist01(0, 1);
+<         int hId = dist01(rng);
+<         // END PATCH
+< 
+<         //for (int hId = 0; hId < haploCount; ++hId)
+<         //{
+---
+>         for (int hId = 0; hId < haploCount; ++hId)
+>         {
+729c723
+<              std::cerr << hId << "\t" << rId << "\t" << pos << "\t" << from << "\t" << seqan::Dna5(toInt) << "\n";
+---
+>             // std::cerr << hId << "\t" << rId << "\t" << pos << "\t" << from << "\t" << seqan::Dna5(toInt) << "\n";
+733c727
+<         //}
+---
+>         }
