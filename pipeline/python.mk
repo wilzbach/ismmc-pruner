@@ -18,10 +18,10 @@ build/python-$(PYTHON_VERSION)/local/bin/python3: build/python-$(PYTHON_VERSION)
 	cd $< && mkdir -p $</local
 	cd $< && make -j $(NPROCS) && make install
 
-build/python-$(PYTHON_VERSION)/local/bin/pyvenv: build/python-$(PYTHON_VERSION)/local/bin/python3
+build/python-$(PYTHON_VERSION)/local/bin/pyvenv: | build/python-$(PYTHON_VERSION)/local/bin/python3
 
 # setup clean working directory
-$(PYTHON_FOLDER): build/python-$(PYTHON_VERSION)/local/bin/pyvenv
+$(PYTHON_FOLDER): | build/python-$(PYTHON_VERSION)/local/bin/pyvenv
 	$< $@
 
 $(PYTHON): | $(PYTHON_FOLDER)
