@@ -28,3 +28,6 @@ progs/gatk: | progs/gatk.jar
 # call haplotyper with any reference
 %.gvcf: $$(@D)/ref.fa %.samsorted.bam $$(@D)/ref.dict $$(@D)/ref.fa.fai | $(GATK)
 	$(GATK) -R $< -T HaplotypeCaller -I $(word 2,$^) -o $@
+
+%.pgvcf: $$(@D)/ref.fa %.pruned.filtered.bam %.pruned.filtered.bam.bai $$(@D)/ref.dict $$(@D)/ref.fa.fai | $(GATK)
+	$(GATK) -R $< -T HaplotypeCaller -I $(word 2,$^) -o $@
