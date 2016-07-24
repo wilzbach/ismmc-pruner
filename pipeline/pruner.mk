@@ -46,9 +46,9 @@ progs/pruner.ldc: $(PRUNER_SOURCES) | $(LDC)
 	$| $< > $@
 
 %.pruned.ids: %.pruned.plain progs/pruner.ldc
-	cat $< | $(word 2, $^) --max-coverage 10 > $@
+	@echo $(MAX_COVERAGE)
+	cat $< | $(word 2, $^) --max-coverage $(MAX_COVERAGE) > $@
 	#cat $< | $(word 2, $^) -p random -m 2 > $@
 
 %.pruned.filtered.bam: %.samsorted.bam %.pruned.ids | progs/pruner_out
 	cat $(word 2, $^) | $| $< $@ > /dev/null
-
