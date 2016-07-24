@@ -1,6 +1,6 @@
 PRUNER_BUILDDIR=build/pruner
 PRUNER_TESTDIR=build/pruner_test
-#DISABLE_LOGGING=-version=StdLoggerDisableLogging
+DISABLE_LOGGING=-version=StdLoggerDisableLogging
 
 PRUNERFLAGS_IMPORT = $(foreach dir,$(PRUNER_SOURCE_DIR), -I$(dir))
 PRUNER_SOURCES = $(call rwildcard,$(PRUNER_SOURCE_DIR)/pruner/,*.d)
@@ -22,6 +22,15 @@ $(PRUNER_TESTDIR)/bin: $(PRUNER_SOURCES) | $(DCC) $(PRUNER_TESTDIR) debug
 	$(DCC) -unittest $^ -of$@ -g -vcolumns
 
 ################################################################################
+# Faster binary with LDC
+################################################################################
+
+LDC_FLAGS=-release -O3 -boundscheck=off
+
+progs/pruner.ldc: $(PRUNER_SOURCES) | $(LDC)
+	$(LDC) $(LDC_FLAGS) -d$(DISABLE_LOGGING) -of$@ -od$(PRUNER_BUILDDIR)/ldc/ $^
+
+################################################################################
 # Prune reads
 # -----------
 #
@@ -36,9 +45,9 @@ $(PRUNER_TESTDIR)/bin: $(PRUNER_SOURCES) | $(DCC) $(PRUNER_TESTDIR) debug
 %.pruned.plain: %.samsorted.bam | progs/pruner_in
 	$| $< > $@
 
-%.pruned.ids: %.pruned.plain progs/pruner
-	#cat $< | $(word 2, $^) --max-coverage 4 > $@
-	cat $< | $(word 2, $^) -p random -m 2 > $@
+%.pruned.ids: %.pruned.plain progs/pruner.ldc
+	cat $< | $(word 2, $^) --max-coverage 10 > $@
+	#cat $< | $(word 2, $^) -p random -m 2 > $@
 
 %.pruned.filtered.bam: %.samsorted.bam %.pruned.ids | progs/pruner_out
 	cat $(word 2, $^) | $| $< $@ > /dev/null
