@@ -15,7 +15,7 @@ build/python-$(PYTHON_VERSION): | build
 
 build/python-$(PYTHON_VERSION)/local/bin/python3: build/python-$(PYTHON_VERSION)
 	cd $< && ./configure --prefix=$(shell pwd)/$</local
-	mkdir -p $</local
+	cd $< && mkdir -p $</local
 	cd $< && make -j $(NPROCS) && make install
 
 build/python-$(PYTHON_VERSION)/local/bin/pyvenv: build/python-$(PYTHON_VERSION)/local/bin/python3
@@ -24,8 +24,8 @@ build/python-$(PYTHON_VERSION)/local/bin/pyvenv: build/python-$(PYTHON_VERSION)/
 $(PYTHON_FOLDER): build/python-$(PYTHON_VERSION)/local/bin/pyvenv
 	$< $@
 
-$(PYTHON): $(PYTHON_FOLDER)
-$(PIP): $(PYTHON_FOLDER)
+$(PYTHON): | $(PYTHON_FOLDER)
+$(PIP): | $(PYTHON_FOLDER)
 
 BIOPYTHON=$(PYTHON_SITE_PACKAGES)/Bio
 
