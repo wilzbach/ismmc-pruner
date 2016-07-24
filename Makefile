@@ -4,7 +4,7 @@ SHELL=pipeline/time.sh
 # Dynamic variables
 ################################################################################
 
-CHR_CUTOFF=5000000 # use -1 for entire chromosome
+CHR_CUTOFF=50000000 # use -1 for entire chromosome
 READ_SIZE=50000
 READ_COVERAGE=30
 SNP_RATE=0.01
