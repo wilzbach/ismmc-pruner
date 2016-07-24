@@ -237,12 +237,12 @@ struct MaxFlow(Graph)
             return 0;
         }
 
-        infof("Found start path: %s", p);
+        //infof("Found start path: %s", p);
         for (;;)
         {
             // TODO: make native loop
             auto flow = p.path.map!((x) => x.capacity - flow[x.cid]).minElement;
-            infof("Update flow %d", flow);
+            //infof("Update flow %d", flow);
 
             // TODO: this is expensive
             foreach (edge; p.path)
@@ -251,11 +251,9 @@ struct MaxFlow(Graph)
                 this.flow[edge.reverse_cid] -= flow;
             }
             p = PathWithMap.init;
-            infof("Searching path %d-%d", source, sink);
+            //infof("Searching path %d-%d", source, sink);
             if (!findPath(source, sink, p))
                 break;
-
-            infof("Found new path");
         }
         return g.getEdgeTails(source).map!((x) => flow[x.cid]).sum;
     }

@@ -51,7 +51,7 @@ public:
     void setPositions()
     {
         // we can do only _one_ loop (moved to main loop)
-        info("positions", positions);
+        info("#positions", positions.length);
         positions = positions.sort().release.uniq.array;
         superSink = positions[$-1] + 1;
     }
@@ -142,6 +142,8 @@ auto maxFlowOptByRef(R)(ref R reads, edge_t maxReadsPerPos)
     //infof("running maxFlow with %d reads", reads.length);
     auto m = MaxFlowOpt(reads);
     auto r = m.binarySearch(maxReadsPerPos);
+    //import std.format : format;
+    //r.flow.printGraph(File(format("debug/test_cid_%d.eps", m.g.cid), "w"));
     infof("tOpt: %d", r.tOpt);
     return r;
 }

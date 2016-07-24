@@ -42,7 +42,9 @@ void main(string[] args)
             import pruner.strategies.pruning: maxFlowPruning;
             // we may have multiple components
             foreach (rs; maxFlowPruning(reads, maxCoverage))
+            {
                 rs.outputReads(stdout);
+            }
             break;
         case Progs.random:
             info("start random");
