@@ -25,7 +25,7 @@ mr = m[m['coverage'] > 0]
 mlast = m[m['coverage'] < 0]
 
 plt.plot(mr['coverage'], mr['time_whatshap'])
-plt.plot(mr['coverage'].max(), mlast['time_whatshap'], color='red', marker='o')
+# plt.plot(mr['coverage'].max(), mlast['time_whatshap'], color='red', marker='o')
 plt.xlabel('Coverage')
 plt.ylabel('WhatsHap runtime in s')
 plt.savefig(args.outFile + ".runtime.pdf", bbox_inches='tight', format="pdf")
@@ -36,4 +36,11 @@ plt.plot(mr['coverage'].max(), mlast['num_reads'], color='red', marker='o')
 plt.xlabel('Coverage')
 plt.ylabel('Num of reads')
 plt.savefig(args.outFile + ".reads.pdf", bbox_inches='tight', format="pdf")
+plt.close()
+
+plt.plot(m['num_reads'], m['time_whatshap'])
+plt.plot(mlast['num_reads'], mlast['time_whatshap'], color='red', marker='o')
+plt.ylabel('Num of reads')
+plt.ylabel('WhatsHap runtime in s')
+plt.savefig(args.outFile + ".reads.rt.pdf", bbox_inches='tight', format="pdf")
 plt.close()
