@@ -8,7 +8,7 @@ PREFIX="data/cov_30_50_000_50M/grch38_chr1"
 # - tOpt = 2
 # - ISMMC with k = 1 would prune everything
 
-echo "coverage,time_ismmc,num_reads,time_whatshap,nr_variants"
+echo "coverage,time_ismmc,num_reads,time_whatshap,nr_variants,mec_score,nr_phased_blocks"
 for x in $(seq 7 5 31) ; do
 	export MAX_COVERAGE="$x";
 	echo -n "${x},"
@@ -27,7 +27,13 @@ for x in $(seq 7 5 31) ; do
 	echo -n "${TIME_WHATSHAP},"
 
 	NR_PHASED_VARIANTS=$(cat ${PREFIX}/mut.hp.pruned.log | grep "No. of variants that were phased:" | cut -f 2 -d':' | tr -d ' ')
-	echo "${NR_PHASED_VARIANTS}"
+	echo -n "${NR_PHASED_VARIANTS},"
+
+	MEC_SCORE=$(cat ${PREFIX}/mut.hp.pruned.log | grep "MEC score of phasing:" | cut -f 2 -d':' | tr -d ' ')
+	echo -n "${MEC_SCORE},"
+
+	NR_PHASED_BLOCKS=$(cat ${PREFIX}/mut.hp.pruned.log | grep "No. of phased blocks:" | cut -f 2 -d':' | tr -d ' ')
+	echo "${NR_PHASED_BLOCKS},"
 
 	mkdir -p tmp
 	cat ${PREFIX}/mut.hp.pruned.vcf > tmp/5m_${x}.vcf
