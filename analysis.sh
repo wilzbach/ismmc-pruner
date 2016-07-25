@@ -1,14 +1,15 @@
 #!/bin/bash
 
 #PREFIX="data/cov_30_50_000_500K/grch38_chr1"
-PREFIX="data/cov_30_50_000_5M/grch38_chr1"
+#PREFIX="data/cov_30_50_000_5M/grch38_chr1"
+PREFIX="data/cov_30_50_000_50M/grch38_chr1"
 
 # Gotchas
 # - tOpt = 2
 # - ISMMC with k = 1 would prune everything
 
 echo "coverage,time_ismmc,num_reads,time_whatshap,nr_variants"
-for x in $(seq 2 5 31) ; do
+for x in $(seq 7 5 31) ; do
 	export MAX_COVERAGE="$x";
 	echo -n "${x},"
 
@@ -27,6 +28,9 @@ for x in $(seq 2 5 31) ; do
 
 	NR_PHASED_VARIANTS=$(cat ${PREFIX}/mut.hp.pruned.log | grep "No. of variants that were phased:" | cut -f 2 -d':' | tr -d ' ')
 	echo "${NR_PHASED_VARIANTS}"
+
+	mkdir -p tmp
+	cat ${PREFIX}/mut.hp.pruned.vcf > tmp/5m_${x}.vcf
 done
 
 # print reference
