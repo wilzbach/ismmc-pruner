@@ -1,6 +1,6 @@
 module pruner.formats;
 
-alias edge_t = int;
+alias edge_t = long;
 
 // TODO: maybe better to use a class?
 class Read
@@ -9,18 +9,18 @@ class Read
 
     // TODO: doubled security is probably unneeded
     // passing around const objects should be enough
-    immutable uint start;
-    immutable uint end;
+    immutable edge_t start;
+    immutable edge_t end;
     size_t id;
 
-    this(uint start, uint end, size_t id = 0)
+    this(edge_t start, edge_t end, size_t id = 0)
     {
         this.start = start;
         this.end = end;
         this.id = id;
     }
 
-    static Read opCall(uint start, uint end, size_t id = 0)
+    static Read opCall(edge_t start, edge_t end, size_t id = 0)
     {
         return new Read(start, end, id);
     }

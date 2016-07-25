@@ -5,8 +5,8 @@ import std.experimental.logger;
 
 struct CovTuple
 {
-    int index;
-    int cov;
+    edge_t index;
+    long cov;
     Read read;
 
     string toString()

@@ -70,13 +70,13 @@ auto getReads(File fileIn)
     foreach (i, ref line; fileIn.byLine.enumerate)
     {
         // chr, start, stop, id
-        auto cread = line.splitter('\t').map!(to!uint);
+        auto cread = line.splitter('\t').map!(to!edge_t);
         cread.popFront;
-        uint start = cread.front;
+        edge_t start = cread.front;
         cread.popFront;
-        uint end = cread.front;
+        edge_t end = cread.front;
         cread.popFront;
-        uint id = cread.front;
+        edge_t id = cread.front;
         auto r = new Read(start, end, id);
         // read is not-copyable, but moveable
          ++reads.length;

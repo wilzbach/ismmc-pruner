@@ -6,7 +6,7 @@ import std.experimental.logger;
 
 class TailEdge
 {
-    edge_t capacity, cid, reverse_cid;
+    long capacity, cid, reverse_cid;
     const(Read) read;
 
     this(edge_t capacity, edge_t cid, edge_t reverse_cid, const(Read) read = null)
@@ -191,12 +191,13 @@ struct MaxFlow(Graph)
     ref Path findPath(edge_t source, edge_t sink)
     {
         PathWithMap p;
+        bool[edge_t] seen;
         p.path.reserve(100);
-        findPath(source, sink, p);
+        findPath(source, sink, p, seen);
         return p.path;
     }
 
-    bool findPath(edge_t source, edge_t sink, ref PathWithMap path)
+    bool findPath(edge_t source, edge_t sink, ref PathWithMap path, ref bool[edge_t] seen)
     {
         if (source == sink)
             return true;
@@ -205,8 +206,14 @@ struct MaxFlow(Graph)
         foreach (target, edge; g.getEdgePairs(source))
         {
             // speed-up performance with this filter against reverse edges
-            if (edge.capacity == 0)
+            if (edge.capacity == 0 || target <= source)
                 continue;
+
+            // don't visit nodes twice
+            if (edge.cid in seen)
+                continue;
+
+            seen[edge.cid] = true;
 
             // remaining possible flow
             edge_t residual = edge.capacity - flow[edge.cid];
@@ -214,12 +221,14 @@ struct MaxFlow(Graph)
             {
                 // avoid unnecessary allocations
                 path.addEdge(edge);
-                auto result = findPath(target, sink, path);
+                auto result = findPath(target, sink, path, seen);
                 if (result)
                     return true;
                 else
+                {
                     // rollback wrong paths
                     path.removeLast();
+                }
             }
         }
         return false;
@@ -231,7 +240,8 @@ struct MaxFlow(Graph)
         import std.experimental.logger;
         import pruner.utils.algorithms : minElement;
         PathWithMap p;
-        if(!findPath(source, sink, p))
+        bool[edge_t] seen;
+        if(!findPath(source, sink, p, seen))
         {
             error("couldn't find a valid path between source and sink");
             return 0;
@@ -251,8 +261,9 @@ struct MaxFlow(Graph)
                 this.flow[edge.reverse_cid] -= flow;
             }
             p = PathWithMap.init;
-            //infof("Searching path %d-%d", source, sink);
-            if (!findPath(source, sink, p))
+            seen = typeof(seen).init;
+            infof("Searching path %d-%d", source, sink);
+            if (!findPath(source, sink, p, seen))
                 break;
         }
         return g.getEdgeTails(source).map!((x) => flow[x.cid]).sum;
